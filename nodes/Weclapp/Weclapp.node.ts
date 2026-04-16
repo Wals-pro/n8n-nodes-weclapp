@@ -70,6 +70,10 @@ export class Weclapp implements INodeType {
 						description: 'Customers, suppliers, and prospects',
 					},
 					{
+						name: 'Production Order',
+						value: 'productionOrder',
+					},
+					{
 						name: 'Purchase Invoice',
 						value: 'purchaseInvoice',
 					},

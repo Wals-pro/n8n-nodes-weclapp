@@ -8,6 +8,7 @@ import { customApiFields, customApiOperations } from './CustomApiDescription';
 export { executeCustomApiCall } from './CustomApiDescription';
 import { documentDescription } from './DocumentDescription';
 import { partyDescription } from './PartyDescription';
+import { productionOrderDescription } from './ProductionOrderDescription';
 import { purchaseInvoiceFields, purchaseInvoiceOperations } from './PurchaseInvoiceDescription';
 import { purchaseOrderFields, purchaseOrderOperations } from './PurchaseOrderDescription';
 
@@ -19,6 +20,7 @@ export const resources: INodeProperties[] = [
 	...customApiFields,
 	...documentDescription,
 	...partyDescription,
+	...productionOrderDescription,
 	...purchaseInvoiceOperations,
 	...purchaseInvoiceFields,
 	...purchaseOrderOperations,
