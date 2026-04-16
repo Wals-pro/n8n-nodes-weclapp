@@ -1,9 +1,4 @@
-import type {
-	IExecuteFunctions,
-	INodeExecutionData,
-	INodeType,
-	INodeTypeDescription,
-} from 'n8n-workflow';
+import type { INodeType, INodeTypeDescription } from 'n8n-workflow';
 
 import { resources } from './descriptions/index';
 import { loadOptions, listSearch } from './methods/loadOptions';
@@ -150,10 +145,4 @@ export class Weclapp implements INodeType {
 		loadOptions,
 		listSearch,
 	};
-
-	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-		// Full routing implementation in unit 2 + individual resource units.
-		// For now, stub returns empty so the node compiles and loads in n8n.
-		return [[]];
-	}
 }
