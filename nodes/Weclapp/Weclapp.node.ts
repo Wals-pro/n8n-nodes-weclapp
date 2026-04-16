@@ -133,6 +133,10 @@ export class Weclapp implements INodeType {
 						name: 'Warehouse Stock Movement',
 						value: 'warehouseStockMovement',
 					},
+					{
+						name: 'Webhook',
+						value: 'webhook',
+					},
 				],
 				default: 'customApiCall',
 			},

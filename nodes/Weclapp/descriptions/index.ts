@@ -27,6 +27,7 @@ import {
 } from './TagUnitUserDescription';
 import { commentFields, commentOperations, ticketFields, ticketOperations } from './TicketDescription';
 import { warehouseDescription } from './WarehouseDescription';
+import { webhookDescription } from './WebhookDescription';
 
 export const resources: INodeProperties[] = [
 	// RESOURCE_ENTRIES_START — workers append here, one line each, alphabetized
@@ -61,5 +62,6 @@ export const resources: INodeProperties[] = [
 	...userOperations,
 	...userFields,
 	...warehouseDescription,
+	...webhookDescription,
 	// RESOURCE_ENTRIES_END
 ];
