@@ -5,7 +5,10 @@ import type { INodeProperties } from 'n8n-workflow';
 // Example (do not uncomment — worker adds real import):
 // import { articleFields, articleOperations } from './ArticleDescription';
 
+import { documentDescription } from './DocumentDescription';
+
 export const resources: INodeProperties[] = [
 	// RESOURCE_ENTRIES_START — workers append here, one line each, alphabetized
+	...documentDescription,
 	// RESOURCE_ENTRIES_END
 ];
