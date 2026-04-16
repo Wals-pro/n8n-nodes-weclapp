@@ -25,11 +25,14 @@ import {
 	userFields,
 	userOperations,
 } from './TagUnitUserDescription';
+import { commentFields, commentOperations, ticketFields, ticketOperations } from './TicketDescription';
 
 export const resources: INodeProperties[] = [
 	// RESOURCE_ENTRIES_START — workers append here, one line each, alphabetized
 	...articleDescription,
 	...bankDescription,
+	...commentOperations,
+	...commentFields,
 	...customApiOperations,
 	...customApiFields,
 	...customAttributeDefinitionOperations,
@@ -50,6 +53,8 @@ export const resources: INodeProperties[] = [
 	...shipmentFields,
 	...tagOperations,
 	...tagFields,
+	...ticketOperations,
+	...ticketFields,
 	...unitOperations,
 	...unitFields,
 	...userOperations,
