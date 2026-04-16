@@ -1,0 +1,97 @@
+{
+  "name": "weclapp — Reconciliation: Find Bank Transactions + Open Invoices",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e5f6a7b8-0005-0005-0005-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "resource": "bankTransaction",
+        "operation": "getMany",
+        "returnAll": false,
+        "limit": 100,
+        "filters": {
+          "filter": [
+            {
+              "field": "paymentStatus",
+              "operator": "-eq",
+              "value": "NOT_PAID"
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "e5f6a7b8-0005-0005-0005-000000000002",
+      "name": "weclapp — Get Unmatched Bank Transactions",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [460, 200],
+      "credentials": {
+        "weclappApi": {
+          "id": "1",
+          "name": "weclappApi"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "salesInvoice",
+        "operation": "getMany",
+        "returnAll": false,
+        "limit": 100,
+        "filters": {
+          "filter": [
+            {
+              "field": "status",
+              "operator": "-eq",
+              "value": "BOOKED"
+            },
+            {
+              "field": "paymentStatus",
+              "operator": "-ne",
+              "value": "PAID"
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "e5f6a7b8-0005-0005-0005-000000000003",
+      "name": "weclapp — Get Open Sales Invoices",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [460, 420],
+      "credentials": {
+        "weclappApi": {
+          "id": "1",
+          "name": "weclappApi"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "weclapp — Get Unmatched Bank Transactions",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "weclapp — Get Open Sales Invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
