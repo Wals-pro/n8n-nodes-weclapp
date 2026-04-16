@@ -1,0 +1,58 @@
+{
+  "name": "weclapp — List Articles with Filter",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "resource": "article",
+        "operation": "getMany",
+        "returnAll": false,
+        "limit": 50,
+        "filters": {
+          "filter": [
+            {
+              "field": "status",
+              "operator": "-eq",
+              "value": "ACTIVE"
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000002",
+      "name": "weclapp — Get Articles",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "weclappApi": {
+          "id": "1",
+          "name": "weclappApi"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "weclapp — Get Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
