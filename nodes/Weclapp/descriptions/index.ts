@@ -2,12 +2,25 @@ import type { INodeProperties } from 'n8n-workflow';
 
 // REGISTER_RESOURCE: each resource worker adds one import + one spread entry below.
 // Keep entries alphabetized. One export per line to minimise merge conflicts.
-// Example (do not uncomment — worker adds real import):
-// import { articleFields, articleOperations } from './ArticleDescription';
+import { articleDescription } from './ArticleDescription';
+import { bankDescription } from './BankDescription';
+import { customApiFields, customApiOperations } from './CustomApiDescription';
+export { executeCustomApiCall } from './CustomApiDescription';
+import { documentDescription } from './DocumentDescription';
+import { partyDescription } from './PartyDescription';
+import { purchaseInvoiceFields, purchaseInvoiceOperations } from './PurchaseInvoiceDescription';
 import { purchaseOrderFields, purchaseOrderOperations } from './PurchaseOrderDescription';
 
 export const resources: INodeProperties[] = [
 	// RESOURCE_ENTRIES_START — workers append here, one line each, alphabetized
+	...articleDescription,
+	...bankDescription,
+	...customApiOperations,
+	...customApiFields,
+	...documentDescription,
+	...partyDescription,
+	...purchaseInvoiceOperations,
+	...purchaseInvoiceFields,
 	...purchaseOrderOperations,
 	...purchaseOrderFields,
 	// RESOURCE_ENTRIES_END
