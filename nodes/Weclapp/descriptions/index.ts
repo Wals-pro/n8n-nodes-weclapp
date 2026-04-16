@@ -15,6 +15,16 @@ import { quotationFields, quotationOperations } from './QuotationDescription';
 import { salesInvoiceFields, salesInvoiceOperations } from './SalesInvoiceDescription';
 import { salesOrderDescription } from './SalesOrderDescription';
 import { shipmentFields, shipmentOperations } from './ShipmentDescription';
+import {
+	customAttributeDefinitionFields,
+	customAttributeDefinitionOperations,
+	tagFields,
+	tagOperations,
+	unitFields,
+	unitOperations,
+	userFields,
+	userOperations,
+} from './TagUnitUserDescription';
 
 export const resources: INodeProperties[] = [
 	// RESOURCE_ENTRIES_START — workers append here, one line each, alphabetized
@@ -22,6 +32,8 @@ export const resources: INodeProperties[] = [
 	...bankDescription,
 	...customApiOperations,
 	...customApiFields,
+	...customAttributeDefinitionOperations,
+	...customAttributeDefinitionFields,
 	...documentDescription,
 	...partyDescription,
 	...productionOrderDescription,
@@ -36,5 +48,11 @@ export const resources: INodeProperties[] = [
 	...salesOrderDescription,
 	...shipmentOperations,
 	...shipmentFields,
+	...tagOperations,
+	...tagFields,
+	...unitOperations,
+	...unitFields,
+	...userOperations,
+	...userFields,
 	// RESOURCE_ENTRIES_END
 ];
