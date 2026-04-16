@@ -45,6 +45,10 @@ export class Weclapp implements INodeType {
 				// Workers will add options here via descriptions/index.ts
 				options: [
 					{
+						name: 'Article',
+						value: 'article',
+					},
+					{
 						name: 'Bank Account',
 						value: 'bankAccount',
 					},
