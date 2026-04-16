@@ -61,6 +61,11 @@ export class Weclapp implements INodeType {
 						value: 'document',
 					},
 					{
+						name: 'Party',
+						value: 'party',
+						description: 'Customers, suppliers, and prospects',
+					},
+					{
 						name: 'Custom API Call',
 						value: 'customApiCall',
 					},
