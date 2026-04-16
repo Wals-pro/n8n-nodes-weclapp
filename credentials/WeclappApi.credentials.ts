@@ -19,7 +19,7 @@ export class WeclappApi implements ICredentialType {
 
 	icon: Icon = 'file:weclapp.svg';
 
-	documentationUrl = 'https://github.com/Wals-pro/n8n-nodes-weclapp#authentication';
+	documentationUrl = 'https://www.weclapp.com/api-docs/';
 
 	properties: INodeProperties[] = [
 		{
@@ -28,7 +28,8 @@ export class WeclappApi implements ICredentialType {
 			type: 'string',
 			default: 'https://tenant.weclapp.com/webapp/api/v2',
 			placeholder: 'https://yourcompany.weclapp.com/webapp/api/v2',
-			description: 'The base URL of your weclapp tenant (including /webapp/api/v2)',
+			description:
+				"Your weclapp API base URL. Replace 'tenant' with your subdomain.",
 			required: true,
 		},
 		{
@@ -39,7 +40,7 @@ export class WeclappApi implements ICredentialType {
 				password: true,
 			},
 			default: '',
-			description: 'Your weclapp API key (Settings → User → API key)',
+			description: 'API token from weclapp User Settings → API token.',
 			required: true,
 		},
 	];
@@ -60,6 +61,7 @@ export class WeclappApi implements ICredentialType {
 			qs: {
 				pageSize: 1,
 			},
+			method: 'GET',
 		},
 	};
 }
