@@ -66,6 +66,10 @@ export class Weclapp implements INodeType {
 						description: 'Customers, suppliers, and prospects',
 					},
 					{
+						name: 'Purchase Invoice',
+						value: 'purchaseInvoice',
+					},
+					{
 						name: 'Custom API Call',
 						value: 'customApiCall',
 					},

@@ -8,6 +8,7 @@ import { customApiFields, customApiOperations } from './CustomApiDescription';
 export { executeCustomApiCall } from './CustomApiDescription';
 import { documentDescription } from './DocumentDescription';
 import { partyDescription } from './PartyDescription';
+import { purchaseInvoiceFields, purchaseInvoiceOperations } from './PurchaseInvoiceDescription';
 
 export const resources: INodeProperties[] = [
 	// RESOURCE_ENTRIES_START — workers append here, one line each, alphabetized
@@ -17,5 +18,7 @@ export const resources: INodeProperties[] = [
 	...customApiFields,
 	...documentDescription,
 	...partyDescription,
+	...purchaseInvoiceOperations,
+	...purchaseInvoiceFields,
 	// RESOURCE_ENTRIES_END
 ];
