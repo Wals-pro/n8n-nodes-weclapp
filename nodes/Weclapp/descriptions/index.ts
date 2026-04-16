@@ -26,6 +26,7 @@ import {
 	userOperations,
 } from './TagUnitUserDescription';
 import { commentFields, commentOperations, ticketFields, ticketOperations } from './TicketDescription';
+import { warehouseDescription } from './WarehouseDescription';
 
 export const resources: INodeProperties[] = [
 	// RESOURCE_ENTRIES_START — workers append here, one line each, alphabetized
@@ -59,5 +60,6 @@ export const resources: INodeProperties[] = [
 	...unitFields,
 	...userOperations,
 	...userFields,
+	...warehouseDescription,
 	// RESOURCE_ENTRIES_END
 ];

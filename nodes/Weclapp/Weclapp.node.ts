@@ -121,6 +121,18 @@ export class Weclapp implements INodeType {
 						name: 'User',
 						value: 'user',
 					},
+					{
+						name: 'Warehouse',
+						value: 'warehouse',
+					},
+					{
+						name: 'Warehouse Stock',
+						value: 'warehouseStock',
+					},
+					{
+						name: 'Warehouse Stock Movement',
+						value: 'warehouseStockMovement',
+					},
 				],
 				default: 'customApiCall',
 			},
