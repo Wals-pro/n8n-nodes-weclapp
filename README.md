@@ -166,3 +166,11 @@ Open issues for new resources, bugs, or API endpoint gaps: [GitHub Issues](https
 ## License
 
 MIT — Copyright (c) 2026 Markus Wals
+
+---
+
+## About
+
+Built and maintained by **[Wals-pro](https://wals.pro)** — weclapp implementation partner.
+
+Try the AI-powered weclapp assistant (Beta): **[dev.weclapp-ai.wals.pro](https://dev.weclapp-ai.wals.pro)**

@@ -16,7 +16,7 @@ export class Weclapp implements INodeType {
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-		description: 'Interact with the weclapp ERP API — CRUD, actions, binary downloads',
+		description: 'Interact with the weclapp ERP API — CRUD, actions, binary downloads, and webhooks. Maintained by Wals-pro (wals.pro). AI copilot available at dev.weclapp-ai.wals.pro (Beta).',
 		defaults: {
 			name: 'weclapp',
 		},

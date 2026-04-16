@@ -4,6 +4,10 @@
 	"description": "n8n community node for the weclapp ERP API — CRUD, actions, binary downloads, webhook trigger",
 	"license": "MIT",
 	"homepage": "https://github.com/Wals-pro/n8n-nodes-weclapp#readme",
+	"funding": {
+		"type": "homepage",
+		"url": "https://wals.pro"
+	},
 	"keywords": [
 		"n8n-community-node-package",
 		"weclapp",
