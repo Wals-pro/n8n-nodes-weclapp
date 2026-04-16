@@ -57,6 +57,10 @@ export class Weclapp implements INodeType {
 						value: 'bankTransaction',
 					},
 					{
+						name: 'Document',
+						value: 'document',
+					},
+					{
 						name: 'Custom API Call',
 						value: 'customApiCall',
 					},

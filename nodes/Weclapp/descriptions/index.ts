@@ -6,6 +6,7 @@ import { articleDescription } from './ArticleDescription';
 import { bankDescription } from './BankDescription';
 import { customApiFields, customApiOperations } from './CustomApiDescription';
 export { executeCustomApiCall } from './CustomApiDescription';
+import { documentDescription } from './DocumentDescription';
 
 export const resources: INodeProperties[] = [
 	// RESOURCE_ENTRIES_START — workers append here, one line each, alphabetized
@@ -13,5 +14,6 @@ export const resources: INodeProperties[] = [
 	...bankDescription,
 	...customApiOperations,
 	...customApiFields,
+	...documentDescription,
 	// RESOURCE_ENTRIES_END
 ];
