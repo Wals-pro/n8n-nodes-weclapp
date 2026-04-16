@@ -300,6 +300,16 @@ export const salesOrderOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '/salesOrder',
 					},
+					output: {
+						postReceive: [
+							{
+								type: 'rootProperty',
+								properties: {
+									property: 'result',
+								},
+							},
+						],
+					},
 				},
 			},
 			{
