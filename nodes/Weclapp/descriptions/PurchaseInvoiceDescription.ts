@@ -114,6 +114,16 @@ export const purchaseInvoiceOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '/purchaseInvoice',
 					},
+					output: {
+						postReceive: [
+							{
+								type: 'rootProperty',
+								properties: {
+									property: 'result',
+								},
+							},
+						],
+					},
 				},
 			},
 			{
