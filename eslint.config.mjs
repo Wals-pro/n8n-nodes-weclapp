@@ -19,8 +19,8 @@ export default [
 		},
 	},
 	{
-		// Exclude build scripts and vitest config — they use console/process/vitest imports
-		// which are fine in CLI tools and devDependency configs, not in node bundles.
-		ignores: ['scripts/**', 'vitest.config.ts'],
+		// Exclude build scripts, vitest config, and tests — they use console/process/vitest imports
+		// which are fine in CLI tools, devDependency configs, and test suites, not in node bundles.
+		ignores: ['scripts/**', 'vitest.config.ts', 'test/**'],
 	},
 ];
