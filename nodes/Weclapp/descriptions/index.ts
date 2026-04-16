@@ -14,6 +14,7 @@ import { purchaseOrderFields, purchaseOrderOperations } from './PurchaseOrderDes
 import { quotationFields, quotationOperations } from './QuotationDescription';
 import { salesInvoiceFields, salesInvoiceOperations } from './SalesInvoiceDescription';
 import { salesOrderDescription } from './SalesOrderDescription';
+import { shipmentFields, shipmentOperations } from './ShipmentDescription';
 
 export const resources: INodeProperties[] = [
 	// RESOURCE_ENTRIES_START — workers append here, one line each, alphabetized
@@ -33,5 +34,7 @@ export const resources: INodeProperties[] = [
 	...salesInvoiceOperations,
 	...salesInvoiceFields,
 	...salesOrderDescription,
+	...shipmentOperations,
+	...shipmentFields,
 	// RESOURCE_ENTRIES_END
 ];
