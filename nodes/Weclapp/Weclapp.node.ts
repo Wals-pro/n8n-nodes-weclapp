@@ -45,12 +45,61 @@ export class Weclapp implements INodeType {
 				// Workers will add options here via descriptions/index.ts
 				options: [
 					{
+						name: 'Article',
+						value: 'article',
+					},
+					{
+						name: 'Bank Account',
+						value: 'bankAccount',
+					},
+					{
+						name: 'Bank Transaction',
+						value: 'bankTransaction',
+					},
+					{
 						name: 'Custom API Call',
 						value: 'customApiCall',
 					},
 					{
 						name: 'Custom Attribute Definition',
 						value: 'customAttributeDefinition',
+					},
+					{
+						name: 'Document',
+						value: 'document',
+					},
+					{
+						name: 'Party',
+						value: 'party',
+						description: 'Customers, suppliers, and prospects',
+					},
+					{
+						name: 'Production Order',
+						value: 'productionOrder',
+					},
+					{
+						name: 'Purchase Invoice',
+						value: 'purchaseInvoice',
+					},
+					{
+						name: 'Purchase Order',
+						value: 'purchaseOrder',
+					},
+					{
+						name: 'Quotation',
+						value: 'quotation',
+					},
+					{
+						name: 'Sales Invoice',
+						value: 'salesInvoice',
+					},
+					{
+						name: 'Sales Order',
+						value: 'salesOrder',
+					},
+					{
+						name: 'Shipment',
+						value: 'shipment',
 					},
 					{
 						name: 'Tag',
