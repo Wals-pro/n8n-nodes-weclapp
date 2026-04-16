@@ -5,7 +5,10 @@ import type { INodeProperties } from 'n8n-workflow';
 // Example (do not uncomment — worker adds real import):
 // import { articleFields, articleOperations } from './ArticleDescription';
 
+import { webhookDescription } from './WebhookDescription';
+
 export const resources: INodeProperties[] = [
 	// RESOURCE_ENTRIES_START — workers append here, one line each, alphabetized
+	...webhookDescription,
 	// RESOURCE_ENTRIES_END
 ];
