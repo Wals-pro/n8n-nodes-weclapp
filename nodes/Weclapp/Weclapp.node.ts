@@ -45,8 +45,16 @@ export class Weclapp implements INodeType {
 				// Workers will add options here via descriptions/index.ts
 				options: [
 					{
+						name: 'Comment',
+						value: 'comment',
+					},
+					{
 						name: 'Custom API Call',
 						value: 'customApiCall',
+					},
+					{
+						name: 'Ticket',
+						value: 'ticket',
 					},
 				],
 				default: 'customApiCall',
