@@ -1,8 +1,11 @@
 import type { INodeProperties } from 'n8n-workflow';
 
+/** A single filter entry read from the fixedCollection at runtime. value is absent for null/notnull operators. */
+export type WeclappFilterEntry = { field: string; operator: string; value?: string };
+
 /**
- * Return All / Limit toggle shared across list operations.
- * Full implementation in unit 3.
+ * Two-field pair used by every List operation.
+ * Spread into a resource descriptor's `properties` array: `...returnAllOrLimit`.
  */
 export const returnAllOrLimit: INodeProperties[] = [
 	{
@@ -30,15 +33,15 @@ export const returnAllOrLimit: INodeProperties[] = [
 ];
 
 /**
- * Filters collection for weclapp query params.
- * Uses only the 13 valid weclapp filter operator suffixes.
- * Full implementation in unit 3.
+ * Filters fixedCollection mapping to weclapp query-param suffixes.
+ * Lists exactly the 13 valid suffixes — `-gte` and `-lte` are omitted because
+ * weclapp silently ignores unknown suffixes, returning unfiltered results.
  */
 export const filtersCollection: INodeProperties = {
 	displayName: 'Filters',
 	name: 'filters',
 	type: 'fixedCollection',
-	placeholder: 'Add Filter',
+	placeholder: 'Add filter',
 	default: {},
 	typeOptions: {
 		multipleValues: true,
@@ -52,30 +55,88 @@ export const filtersCollection: INodeProperties = {
 					displayName: 'Field',
 					name: 'field',
 					type: 'string',
+					required: true,
 					default: '',
-					description: 'The entity field to filter on',
-					placeholder: 'e.g. status',
+					description: 'Entity property name (e.g., articleNumber, partyType)',
+					placeholder: 'e.g. articleNumber',
 				},
 				{
 					displayName: 'Operator',
 					name: 'operator',
 					type: 'options',
-					default: '-eq',
+					default: 'eq',
 					options: [
-						{ name: 'Equals', value: '-eq' },
-						{ name: 'Greater Than', value: '-gt' },
-						{ name: 'Greater than or Equal', value: '-ge' },
-						{ name: 'Ilike (Case-Insensitive)', value: '-ilike' },
-						{ name: 'In (JSON Array)', value: '-in' },
-						{ name: 'Is Not Null', value: '-notnull' },
-						{ name: 'Is Null', value: '-null' },
-						{ name: 'Less Than', value: '-lt' },
-						{ name: 'Less than or Equal', value: '-le' },
-						{ name: 'Like (SQL %/_)', value: '-like' },
-						{ name: 'Not Equals', value: '-ne' },
-						{ name: 'Not Ilike', value: '-notilike' },
-						{ name: 'Not in (JSON Array)', value: '-notin' },
-						{ name: 'Not Like', value: '-notlike' },
+						{
+							name: 'Case-Insensitive Like',
+							value: 'ilike',
+							description: 'Case-insensitive LIKE pattern matching',
+						},
+						{
+							name: 'Case-Insensitive Not Like',
+							value: 'notilike',
+							description: 'Case-insensitive negated LIKE pattern matching',
+						},
+						{
+							name: 'Equals',
+							value: 'eq',
+							description: 'Field value equals the given value',
+						},
+						{
+							name: 'Greater Than',
+							value: 'gt',
+							description: 'Field value is strictly greater than the given value',
+						},
+						{
+							name: 'Greater Than or Equal',
+							value: 'ge',
+							description: 'Field value is greater than or equal to the given value',
+						},
+						{
+							name: 'In (JSON Array)',
+							value: 'in',
+							description: 'Field value is one of the values in a JSON array (e.g., ["a","b"])',
+						},
+						{
+							name: 'Is Not Null',
+							value: 'notnull',
+							description: 'Field value is not null (leave Value empty)',
+						},
+						{
+							name: 'Is Null',
+							value: 'null',
+							description: 'Field value is null (leave Value empty)',
+						},
+						{
+							name: 'Less Than',
+							value: 'lt',
+							description: 'Field value is strictly less than the given value',
+						},
+						{
+							name: 'Less Than or Equal',
+							value: 'le',
+							description: 'Field value is less than or equal to the given value',
+						},
+						{
+							name: 'Like',
+							value: 'like',
+							description: 'SQL-style LIKE pattern matching (use % and _ wildcards)',
+						},
+						{
+							name: 'Not Equals',
+							value: 'ne',
+							description: 'Field value does not equal the given value',
+						},
+						{
+							name: 'Not In (JSON Array)',
+							value: 'notin',
+							description:
+								'Field value is not one of the values in a JSON array (e.g., ["a","b"])',
+						},
+						{
+							name: 'Not Like',
+							value: 'notlike',
+							description: 'Negated SQL-style LIKE pattern matching',
+						},
 					],
 				},
 				{
@@ -83,31 +144,33 @@ export const filtersCollection: INodeProperties = {
 					name: 'value',
 					type: 'string',
 					default: '',
-					description: 'Filter value (use JSON array string for -in/-notin)',
+					description:
+						'Operator value. For in/notin use JSON array. For null/notnull leave empty.',
+					displayOptions: {
+						hide: {
+							operator: ['null', 'notnull'],
+						},
+					},
 				},
 			],
 		},
 	],
 };
 
-/**
- * Additional fields collection (properties, includeReferencedEntities, etc.).
- * Full implementation in unit 3.
- */
+/** Optional query-level modifiers available on most List and Get operations. */
 export const additionalFields: INodeProperties = {
 	displayName: 'Additional Fields',
 	name: 'additionalFields',
 	type: 'collection',
-	placeholder: 'Add Field',
+	placeholder: 'Add field',
 	default: {},
 	options: [
 		{
-			displayName: 'Properties (Field Projection)',
+			displayName: 'Properties',
 			name: 'properties',
 			type: 'string',
 			default: '',
-			description:
-				'Comma-separated list of fields to include in the response (field projection)',
+			description: 'Comma-separated list of fields to include in the response',
 			placeholder: 'e.g. ID,articleNumber,name',
 		},
 		{
@@ -115,7 +178,7 @@ export const additionalFields: INodeProperties = {
 			name: 'includeReferencedEntities',
 			type: 'string',
 			default: '',
-			description: 'Comma-separated list of referenced entity types to include inline',
+			description: 'Comma-separated list of referenced entity IDs to expand',
 			placeholder: 'e.g. article,party',
 		},
 		{
@@ -123,19 +186,25 @@ export const additionalFields: INodeProperties = {
 			name: 'serializeNulls',
 			type: 'boolean',
 			default: false,
-			description: 'Whether to include null fields in the response',
+			description: 'Whether to include null-valued fields in the response',
 		},
 	],
 };
 
-/**
- * Simplify toggle — when true, returns curated subset of entity fields.
- */
+/** When true, weclapp ignores fields absent from the PUT body instead of clearing them. Attach to Update operations only. */
+export const ignoreMissingPropertiesField: INodeProperties = {
+	displayName: 'Ignore Missing Properties',
+	name: 'ignoreMissingProperties',
+	type: 'boolean',
+	default: true,
+	description:
+		'Whether to ignore fields missing from the body on update (weclapp PUT with ignoreMissingProperties=true)',
+};
+
 export const simplifyField: INodeProperties = {
 	displayName: 'Simplify',
 	name: 'simplify',
 	type: 'boolean',
 	default: true,
-	description:
-		'Whether to return a simplified version of the response instead of the raw data (recommended for most use cases)',
+	description: 'Whether to return a simplified version of the response instead of the raw data',
 };

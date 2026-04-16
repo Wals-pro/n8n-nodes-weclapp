@@ -2,12 +2,16 @@ import type {
 	IDataObject,
 	IExecuteFunctions,
 	IHookFunctions,
+	IHttpRequestMethods,
 	ILoadOptionsFunctions,
+	INode,
 	INodeExecutionData,
 	IPollFunctions,
+	JsonObject,
 } from 'n8n-workflow';
+import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
-type WeclappFunctions =
+export type WeclappFunctions =
 	| IExecuteFunctions
 	| IHookFunctions
 	| ILoadOptionsFunctions
@@ -16,73 +20,366 @@ type WeclappFunctions =
 export interface WeclappFilterItem {
 	field: string;
 	operator: string;
-	value: string;
+	value: unknown;
 }
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const VALID_OPERATORS = new Set([
+	'eq',
+	'ne',
+	'lt',
+	'gt',
+	'le',
+	'ge',
+	'null',
+	'notnull',
+	'like',
+	'notlike',
+	'ilike',
+	'notilike',
+	'in',
+	'notin',
+]);
+
+/** Fields kept per resource when simplify = true. */
+const SIMPLIFY_FIELDS: Record<string, string[]> = {
+	article: ['id', 'articleNumber', 'name', 'articleType', 'active', 'unitId', 'version'],
+	party: ['id', 'partyNumber', 'name', 'firstName', 'lastName', 'partyType', 'active', 'version'],
+	salesOrder: [
+		'id',
+		'orderNumber',
+		'commission',
+		'salesOrderPaymentType',
+		'orderDate',
+		'status',
+		'grossAmount',
+		'version',
+	],
+};
+
+// ---------------------------------------------------------------------------
+// Core request helper
+// ---------------------------------------------------------------------------
 
 /**
  * Make an authenticated request to the weclapp API.
- * Handles RFC 7807 error parsing and throws NodeOperationError on failure.
- * Full implementation in unit 2.
+ *
+ * The `endpoint` is a relative path (e.g. `/article`). The node's
+ * `requestDefaults.baseURL` supplies the tenant base, so we never
+ * hard-code tenant URLs here.
+ *
+ * Errors are parsed via `parseApiProblem` and re-thrown as `NodeApiError`
+ * so n8n shows a structured, human-readable message.
  */
 export async function weclappApiRequest(
 	this: WeclappFunctions,
-	_method: string,
-	_endpoint: string,
-	_body?: IDataObject,
-	_qs?: IDataObject,
+	method: IHttpRequestMethods,
+	endpoint: string,
+	body?: IDataObject,
+	qs?: IDataObject,
 ): Promise<IDataObject> {
-	throw new Error('not implemented');
+	try {
+		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'weclappApi', {
+			method,
+			url: endpoint,
+			body,
+			qs,
+			json: true,
+		});
+		return response as IDataObject;
+	} catch (err) {
+		parseApiProblem(this, err);
+	}
 }
 
+// ---------------------------------------------------------------------------
+// Pagination helper
+// ---------------------------------------------------------------------------
+
 /**
- * Fetch all pages of a paginated weclapp list endpoint.
- * Uses page-based pagination with pageSize up to 1000.
- * Full implementation in unit 2.
+ * Fetch ALL pages of a weclapp list endpoint, concatenating `result` arrays.
+ *
+ * Stops when:
+ *  - `response.result.length < pageSize` (last page), or
+ *  - `maxPages` is reached (safety cap, default 100).
+ *
+ * @param pageSize  Items per page (max 1000 in weclapp). Default 1000.
+ * @param maxPages  Hard cap on requests to avoid runaway loops. Default 100.
  */
 export async function weclappApiRequestAllItems(
 	this: WeclappFunctions,
-	_method: string,
-	_endpoint: string,
-	_qs?: IDataObject,
-	_pageSize?: number,
+	method: IHttpRequestMethods,
+	endpoint: string,
+	qs?: IDataObject,
+	pageSize = 1000,
+	maxPages = 100,
 ): Promise<IDataObject[]> {
-	throw new Error('not implemented');
+	const results: IDataObject[] = [];
+
+	for (let page = 1; page <= maxPages; page++) {
+		const response = await weclappApiRequest.call(this, method, endpoint, undefined, {
+			...qs,
+			page,
+			pageSize,
+		});
+
+		const batch = (response.result as IDataObject[] | undefined) ?? [];
+		results.push(...batch);
+
+		if (batch.length < pageSize) {
+			// Last page — no more items.
+			break;
+		}
+	}
+
+	return results;
 }
 
+// ---------------------------------------------------------------------------
+// Filter builder
+// ---------------------------------------------------------------------------
+
 /**
- * Convert a filters collection array into weclapp query params.
- * e.g. [{field: "status", operator: "-eq", value: "NEW"}] → {"status-eq": "NEW"}
- * Full implementation in unit 2.
+ * Convert a UI filter collection into weclapp query-string params.
+ *
+ * weclapp uses `field-operator=value` query params for filtering.
+ * This function validates the operator against the 13 supported suffixes
+ * and rejects common mistakes (`gte`, `lte`) with a clear error message.
+ *
+ * Special handling:
+ *  - `in` / `notin` : value is JSON-stringified if it is an array; CSV
+ *    strings are passed through unchanged (weclapp accepts both forms but
+ *    we normalise arrays to JSON).
+ *  - `null` / `notnull` : value is omitted (weclapp ignores it anyway).
+ *
+ * @returns A flat `Record<string,string>` suitable for `qs` in httpRequest.
  */
-export function buildFilterParams(_filters: WeclappFilterItem[]): IDataObject {
-	return {};
+export function buildFilterParams(
+	filters: WeclappFilterItem[],
+	node?: { getNode: () => INode },
+): Record<string, string> {
+	const params: Record<string, string> = {};
+
+	for (const filter of filters) {
+		// Strip a leading dash if the UI passed the full suffix (e.g. "-eq" → "eq").
+		const op = filter.operator.startsWith('-') ? filter.operator.slice(1) : filter.operator;
+
+		// Friendly error for the two most common silent-failure typos.
+		if (op === 'gte' || op === 'lte') {
+			const correct = op === 'gte' ? '-ge' : '-le';
+			const msg =
+				`Invalid weclapp filter operator "-${op}". ` +
+				`This operator does not exist and would silently match nothing. ` +
+				`Use -ge / -le for greater-or-equal / less-or-equal. ` +
+				`Correct operator: "${correct}".`;
+			if (node) {
+				throw new NodeOperationError(node.getNode(), msg);
+			}
+			throw new NodeOperationError({ id: '', name: '', type: '', typeVersion: 1, position: [0, 0], parameters: {} }, msg);
+		}
+
+		if (!VALID_OPERATORS.has(op)) {
+			const msg =
+				`Invalid weclapp filter operator "${filter.operator}". ` +
+				`Valid operators: ${[...VALID_OPERATORS].map((o) => '-' + o).join(', ')}.`;
+			if (node) {
+				throw new NodeOperationError(node.getNode(), msg);
+			}
+			throw new NodeOperationError({ id: '', name: '', type: '', typeVersion: 1, position: [0, 0], parameters: {} }, msg);
+		}
+
+		const key = `${filter.field}-${op}`;
+
+		// `null` / `notnull` operators take no value.
+		if (op === 'null' || op === 'notnull') {
+			params[key] = '';
+			continue;
+		}
+
+		// `in` / `notin` accept either a JSON array or a raw value; normalise arrays.
+		if (op === 'in' || op === 'notin') {
+			if (Array.isArray(filter.value)) {
+				params[key] = JSON.stringify(filter.value);
+			} else {
+				params[key] = String(filter.value ?? '');
+			}
+			continue;
+		}
+
+		params[key] = String(filter.value ?? '');
+	}
+
+	return params;
 }
 
+// ---------------------------------------------------------------------------
+// Error parser
+// ---------------------------------------------------------------------------
+
 /**
- * Parse a weclapp RFC 7807 API problem response into a readable error message.
- * Extracts title + nested items[].validationMessages[].
- * Full implementation in unit 2.
+ * Parse a weclapp RFC 7807 problem response and throw a structured
+ * `NodeApiError` with the most useful available detail.
+ *
+ * Extracts:
+ *  - `status`, `title`, `detail` — standard RFC 7807 top-level fields
+ *  - `body.items[].validationMessages[].description` — nested field errors
+ *
+ * 429 responses receive an extra user-friendly rate-limit hint.
+ *
+ * @param context  The calling function's `this` — needed to construct NodeApiError.
+ * @param err      The raw error thrown by httpRequestWithAuthentication.
  */
-export function parseApiProblem(err: IDataObject): never {
-	const message = (err.detail as string) || (err.title as string) || 'Unknown weclapp API error';
-	throw new Error(message);
+export function parseApiProblem(context: WeclappFunctions, err: unknown): never {
+	// Extract the response body from the error object.
+	// n8n wraps HTTP errors in a structure with `cause.response.body` or `body`.
+	let body: IDataObject = {};
+
+	if (err && typeof err === 'object') {
+		const e = err as Record<string, unknown>;
+
+		// Try err.cause.response.body first (httpRequestWithAuthentication wraps errors).
+		const causeBody = (e.cause as Record<string, unknown> | undefined)?.response as
+			| Record<string, unknown>
+			| undefined;
+		if (causeBody?.body && typeof causeBody.body === 'object') {
+			body = causeBody.body as IDataObject;
+		} else if (e.body && typeof e.body === 'object') {
+			body = e.body as IDataObject;
+		} else if (e.response && typeof e.response === 'object') {
+			const r = e.response as Record<string, unknown>;
+			if (r.body && typeof r.body === 'object') {
+				body = r.body as IDataObject;
+			}
+		}
+	}
+
+	const status = (body.status as number | string | undefined) ?? '';
+	const title = (body.title as string | undefined) ?? '';
+	const detail = (body.detail as string | undefined) ?? '';
+
+	// Collect nested field-level validation messages.
+	const validationDetails: string[] = [];
+	const items = body.items as Array<{ validationMessages?: Array<{ description?: string }> }> | undefined;
+	if (Array.isArray(items)) {
+		for (const item of items) {
+			if (Array.isArray(item.validationMessages)) {
+				for (const vm of item.validationMessages) {
+					if (vm.description) {
+						validationDetails.push(vm.description);
+					}
+				}
+			}
+		}
+	}
+
+	// Build the human-readable message.
+	const detailPart = validationDetails.length > 0 ? validationDetails.join('; ') : detail;
+	const parts: string[] = [];
+	if (status) parts.push(String(status));
+	if (title) parts.push(title);
+	if (detailPart) parts.push(detailPart);
+
+	const rawErr = err as Record<string, unknown> | undefined;
+	const baseMessage =
+		parts.length > 0
+			? parts.join(': ')
+			: (rawErr?.message as string) || 'Unknown weclapp API error';
+
+	// Prepend rate-limit hint for 429 responses.
+	const isRateLimited = String(status) === '429';
+	const message = isRateLimited
+		? 'Rate limited by weclapp — retry after a moment. ' + baseMessage
+		: baseMessage;
+
+	const node = context.getNode();
+	throw new NodeApiError(node, body as unknown as JsonObject, {
+		message,
+		httpCode: status ? String(status) : undefined,
+	});
 }
 
+// ---------------------------------------------------------------------------
+// Simplify helper
+// ---------------------------------------------------------------------------
+
 /**
- * Return a simplified subset of entity fields (5-10 most useful).
- * Default simplification per resource type. Full implementation in unit 2.
+ * Return a reduced view of an entity, keeping only the fields most useful
+ * for the given resource. Unknown resources pass through unchanged.
+ *
+ * Field whitelists are intentionally minimal — they cover the fields that
+ * users almost always need without overwhelming the output.
  */
-export function simplifyEntity(entity: IDataObject, _resource: string): IDataObject {
-	return entity;
+export function simplifyEntity(entity: IDataObject, resource: string): IDataObject {
+	const fields = SIMPLIFY_FIELDS[resource];
+	if (!fields) {
+		// Unknown resource — return the full entity unchanged.
+		return entity;
+	}
+
+	const simplified: IDataObject = {};
+	for (const field of fields) {
+		if (Object.prototype.hasOwnProperty.call(entity, field)) {
+			simplified[field] = entity[field];
+		}
+	}
+	return simplified;
 }
 
+// ---------------------------------------------------------------------------
+// Binary download helper
+// ---------------------------------------------------------------------------
+
 /**
- * Handle a binary (PDF/image) download response and attach it as n8n binary data.
- * Full implementation in unit 2.
+ * Download a binary resource (PDF, image, ZIP) from a weclapp endpoint and
+ * return it as n8n binary data.
+ *
+ * Uses `arraybuffer` encoding and `returnFullResponse: true` so we can read
+ * the `Content-Type` header from the actual response.
+ *
+ * @param method    HTTP method (usually 'GET' or 'POST' for PDF generation actions).
+ * @param endpoint  Relative endpoint path.
+ * @param filename  Suggested filename for the binary attachment.
+ * @param body      Optional request body.
+ * @param qs        Optional query-string parameters.
  */
 export async function handleBinaryDownload(
 	this: IExecuteFunctions,
-	_response: IDataObject,
+	method: IHttpRequestMethods,
+	endpoint: string,
+	filename: string,
+	body?: IDataObject,
+	qs?: IDataObject,
 ): Promise<INodeExecutionData> {
-	throw new Error('not implemented');
+	const response = await this.helpers.httpRequestWithAuthentication.call(this, 'weclappApi', {
+		method,
+		url: endpoint,
+		body,
+		qs,
+		encoding: 'arraybuffer',
+		returnFullResponse: true,
+	});
+
+	const fullResponse = response as {
+		body: Buffer;
+		headers: Record<string, string>;
+	};
+
+	const contentType =
+		fullResponse.headers['content-type'] ?? 'application/octet-stream';
+
+	const binaryData = await this.helpers.prepareBinaryData(
+		fullResponse.body,
+		filename,
+		contentType,
+	);
+
+	return {
+		json: {},
+		binary: {
+			data: binaryData,
+		},
+	};
 }
