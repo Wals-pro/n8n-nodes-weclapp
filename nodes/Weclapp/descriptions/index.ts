@@ -4,8 +4,26 @@ import type { INodeProperties } from 'n8n-workflow';
 // Keep entries alphabetized. One export per line to minimise merge conflicts.
 // Example (do not uncomment — worker adds real import):
 // import { articleFields, articleOperations } from './ArticleDescription';
+import {
+	customAttributeDefinitionFields,
+	customAttributeDefinitionOperations,
+	tagFields,
+	tagOperations,
+	unitFields,
+	unitOperations,
+	userFields,
+	userOperations,
+} from './TagUnitUserDescription';
 
 export const resources: INodeProperties[] = [
 	// RESOURCE_ENTRIES_START — workers append here, one line each, alphabetized
+	...customAttributeDefinitionOperations,
+	...customAttributeDefinitionFields,
+	...tagOperations,
+	...tagFields,
+	...unitOperations,
+	...unitFields,
+	...userOperations,
+	...userFields,
 	// RESOURCE_ENTRIES_END
 ];

@@ -48,6 +48,22 @@ export class Weclapp implements INodeType {
 						name: 'Custom API Call',
 						value: 'customApiCall',
 					},
+					{
+						name: 'Custom Attribute Definition',
+						value: 'customAttributeDefinition',
+					},
+					{
+						name: 'Tag',
+						value: 'tag',
+					},
+					{
+						name: 'Unit',
+						value: 'unit',
+					},
+					{
+						name: 'User',
+						value: 'user',
+					},
 				],
 				default: 'customApiCall',
 			},
