@@ -1,0 +1,79 @@
+{
+  "name": "weclapp — Sales Order Lifecycle",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c3d4e5f6-0003-0003-0003-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "resource": "salesOrder",
+        "operation": "get",
+        "id": "={{ $json.salesOrderId }}"
+      },
+      "id": "c3d4e5f6-0003-0003-0003-000000000002",
+      "name": "weclapp — Get Sales Order",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "weclappApi": {
+          "id": "1",
+          "name": "weclappApi"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "salesOrder",
+        "operation": "update",
+        "id": "={{ $json.id }}",
+        "body": {
+          "status": "ORDER_CONFIRMATION_PRINTED"
+        }
+      },
+      "id": "c3d4e5f6-0003-0003-0003-000000000003",
+      "name": "weclapp — Update Sales Order",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "credentials": {
+        "weclappApi": {
+          "id": "1",
+          "name": "weclappApi"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "weclapp — Get Sales Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp — Get Sales Order": {
+      "main": [
+        [
+          {
+            "node": "weclapp — Update Sales Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
