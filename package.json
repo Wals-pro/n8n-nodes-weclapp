@@ -1,0 +1,68 @@
+{
+	"name": "n8n-nodes-weclapp",
+	"version": "0.1.0",
+	"description": "n8n community node for the weclapp ERP API — CRUD, actions, binary downloads, webhook trigger",
+	"license": "MIT",
+	"homepage": "https://github.com/Wals-pro/n8n-nodes-weclapp#readme",
+	"keywords": [
+		"n8n-community-node-package",
+		"weclapp",
+		"erp"
+	],
+	"author": {
+		"name": "Markus Wals",
+		"email": "markus@wals.pro",
+		"url": "https://wals.pro"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Wals-pro/n8n-nodes-weclapp.git"
+	},
+	"bugs": {
+		"url": "https://github.com/Wals-pro/n8n-nodes-weclapp/issues"
+	},
+	"engines": {
+		"node": ">=20.15"
+	},
+	"scripts": {
+		"build": "n8n-node build",
+		"build:watch": "tsc --watch",
+		"codegen": "tsx scripts/vendor-sdk-metadata.ts && tsx scripts/generate-descriptors.ts",
+		"dev": "n8n-node dev",
+		"format": "prettier --write .",
+		"lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix",
+		"prepublishOnly": "n8n-node prerelease",
+		"release": "n8n-node release",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"files": [
+		"dist"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"credentials": [
+			"dist/credentials/WeclappApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/Weclapp/Weclapp.node.js",
+			"dist/nodes/WeclappTrigger/WeclappTrigger.node.js"
+		]
+	},
+	"devDependencies": {
+		"@n8n/node-cli": ">=0.23.0",
+		"@stoplight/prism-cli": "^5.12.0",
+		"@types/node": "^20.17.0",
+		"@weclapp/sdk": "latest",
+		"eslint": "9.39.4",
+		"prettier": "3.8.1",
+		"release-it": "19.2.4",
+		"tsx": "^4.19.0",
+		"typescript": "5.9.3",
+		"vitest": "^2.1.0"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	}
+}
