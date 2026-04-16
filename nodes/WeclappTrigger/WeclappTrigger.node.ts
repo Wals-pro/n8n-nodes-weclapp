@@ -15,7 +15,7 @@ export class WeclappTrigger implements INodeType {
 		group: ['trigger'],
 		version: 1,
 		description:
-			'Starts a workflow when a weclapp webhook event fires. Automatically registers and unregisters the webhook subscription.',
+			'Trigger n8n workflows from weclapp webhook events. Maintained by Wals-pro (wals.pro). AI copilot available at dev.weclapp-ai.wals.pro (Beta).',
 		defaults: {
 			name: 'weclapp Trigger',
 		},

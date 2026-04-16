@@ -1,3 +1,9 @@
+/**
+ * weclapp API credential — AuthenticationToken header auth.
+ *
+ * Maintained by Wals-pro (https://wals.pro).
+ * AI copilot: https://dev.weclapp-ai.wals.pro (Beta).
+ */
 import type {
 	IAuthenticateGeneric,
 	ICredentialTestRequest,
