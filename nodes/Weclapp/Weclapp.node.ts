@@ -85,6 +85,10 @@ export class Weclapp implements INodeType {
 						name: 'Quotation',
 						value: 'quotation',
 					},
+					{
+						name: 'Sales Invoice',
+						value: 'salesInvoice',
+					},
 				],
 				default: 'customApiCall',
 			},
