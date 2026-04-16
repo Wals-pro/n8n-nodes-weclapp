@@ -24,10 +24,19 @@ npm install n8n-nodes-weclapp
 
 ## Authentication
 
-1. Go to **Credentials → New** → search for `weclapp API`.
-2. Enter your **Base URL**: `https://yourcompany.weclapp.com/webapp/api/v2`
-3. Enter your **API Key** (weclapp → Settings → User → API key).
-4. Click **Test credential** — it performs `GET /currency?pageSize=1` to verify.
+### Generating an API token
+
+1. Log in to your weclapp instance.
+2. Open **User Settings** (top-right menu → your name) → **API token**.
+3. Click **Generate** (or copy the existing token).
+
+### Configuring the credential in n8n
+
+1. Go to **Credentials → New** → search for **weclapp API**.
+2. Enter your **Base URL** in the format `https://<your-subdomain>.weclapp.com/webapp/api/v2`.  
+   Replace `<your-subdomain>` with your company's weclapp subdomain.
+3. Paste the **API token** from User Settings into the **API Key** field.
+4. Click **Test credential** — n8n sends `GET /currency?pageSize=1` and expects a `200 OK` response to confirm the token and base URL are correct.
 
 ## Quick Example: List Articles
 
