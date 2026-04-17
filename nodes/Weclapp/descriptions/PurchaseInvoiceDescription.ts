@@ -91,6 +91,24 @@ export const purchaseInvoiceOperations: INodeProperties[] = [
 				value: 'downloadLatestPurchaseInvoiceDocument',
 				action: 'Download the latest purchase invoice document',
 				description: 'Download the latest document (PDF/image) attached to the purchase invoice',
+				routing: {
+					request: {
+						method: 'GET',
+						url: '=/purchaseInvoice/id/{{$parameter["purchaseInvoiceId"]}}/downloadLatestPurchaseInvoiceDocument',
+						encoding: 'arraybuffer',
+						returnFullResponse: true,
+					},
+					output: {
+						postReceive: [
+							{
+								type: 'binaryData' as const,
+								properties: {
+									destinationProperty: 'data',
+								},
+							},
+						],
+					},
+				},
 			},
 			{
 				name: 'Get',
@@ -131,6 +149,24 @@ export const purchaseInvoiceOperations: INodeProperties[] = [
 				value: 'printLabel',
 				action: 'Print label for a purchase invoice',
 				description: 'Generate and download a label (PDF/image) for the purchase invoice',
+				routing: {
+					request: {
+						method: 'POST',
+						url: '=/purchaseInvoice/id/{{$parameter["purchaseInvoiceId"]}}/printLabel',
+						encoding: 'arraybuffer',
+						returnFullResponse: true,
+					},
+					output: {
+						postReceive: [
+							{
+								type: 'binaryData' as const,
+								properties: {
+									destinationProperty: 'data',
+								},
+							},
+						],
+					},
+				},
 			},
 			{
 				name: 'Reset Taxes',
@@ -450,6 +486,13 @@ const printLabelFields: INodeProperties[] = [
 			{ name: 'Only One Label per Booking Record', value: 'ONLY_ONE_LABEL_PER_BOOKING_RECORD' },
 			{ name: 'Only One Label per Item', value: 'ONLY_ONE_LABEL_PER_ITEM' },
 		],
+		routing: {
+			request: {
+				body: {
+					itemLabelQuantityPrintSetting: '={{ $value }}',
+				},
+			},
+		},
 	},
 	{
 		displayName: 'Purchase Invoice Item IDs',
@@ -463,17 +506,12 @@ const printLabelFields: INodeProperties[] = [
 				operation: ['printLabel'],
 			},
 		},
-	},
-	{
-		displayName: 'Binary Property',
-		name: 'binaryProperty',
-		type: 'string',
-		default: 'data',
-		description: 'Name of the binary property to write the label file to',
-		displayOptions: {
-			show: {
-				resource: ['purchaseInvoice'],
-				operation: ['printLabel'],
+		routing: {
+			request: {
+				body: {
+					purchaseInvoiceItemIds:
+						'={{ $value ? $value.split(",").map(s => s.trim()).filter(Boolean) : undefined }}',
+				},
 			},
 		},
 	},

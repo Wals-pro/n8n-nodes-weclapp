@@ -53,13 +53,13 @@ export const productionOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/productionOrder/id/{{$parameter["productionOrderId"]}}/createPickingList',
-						body: {},
 						encoding: 'arraybuffer',
+						returnFullResponse: true,
 					},
 					output: {
 						postReceive: [
 							{
-								type: 'binaryData',
+								type: 'binaryData' as const,
 								properties: {
 									destinationProperty: 'data',
 								},
@@ -100,11 +100,12 @@ export const productionOrderOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/productionOrder/id/{{$parameter["productionOrderId"]}}/downloadLatestProductionOrderPdf',
 						encoding: 'arraybuffer',
+						returnFullResponse: true,
 					},
 					output: {
 						postReceive: [
 							{
-								type: 'binaryData',
+								type: 'binaryData' as const,
 								properties: {
 									destinationProperty: 'data',
 								},

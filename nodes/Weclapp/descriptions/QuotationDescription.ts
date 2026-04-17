@@ -164,14 +164,13 @@ export const quotationOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/quotation/id/{{$parameter["quotationId"]}}/createQuotationPdf',
-						body: {},
 						encoding: 'arraybuffer',
 						returnFullResponse: true,
 					},
 					output: {
 						postReceive: [
 							{
-								type: 'binaryData',
+								type: 'binaryData' as const,
 								properties: {
 									destinationProperty: 'data',
 								},
