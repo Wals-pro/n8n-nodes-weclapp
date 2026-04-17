@@ -1,6 +1,73 @@
-import type { INodeProperties } from 'n8n-workflow';
+import type { IDataObject, IHttpRequestOptions, INodeProperties } from 'n8n-workflow';
 
 import { additionalFields, filtersCollection, returnAllOrLimit, simplifyField } from '../SharedFields';
+
+/**
+ * preSend hook for warehouse/warehouseStock/warehouseStockMovement list operations.
+ *
+ * Removes query-string keys whose value is empty string, undefined, or the
+ * literal string "undefined". This prevents optional filter fields (filterName,
+ * filterWarehouseId, etc.) from sending e.g. `name-eq=` or `name-eq=undefined`
+ * to the weclapp API when left blank in the UI — weclapp interprets `field-eq=`
+ * as "field equals empty string" and returns 0 results.
+ *
+ * Attached at FIELD level (routing.send.preSend) so it runs during field routing
+ * processing, after all earlier routing has been accumulated.
+ */
+export async function stripEmptyFilterPreSend(
+	this: { getNodeParameter: (name: string, fallback?: unknown) => unknown },
+	requestOptions: IHttpRequestOptions,
+): Promise<IHttpRequestOptions> {
+	if (!requestOptions.qs || typeof requestOptions.qs !== 'object') {
+		return requestOptions;
+	}
+	const cleanQs: IDataObject = {};
+	for (const [key, value] of Object.entries(requestOptions.qs as IDataObject)) {
+		if (value !== undefined && value !== null && value !== '' && value !== 'undefined') {
+			cleanQs[key] = value;
+		}
+	}
+	return { ...requestOptions, qs: cleanQs };
+}
+
+/**
+ * Factory: creates a preSend hook that adds a single query-string filter
+ * (key=value) only when the named parameter is non-empty.
+ *
+ * n8n does not skip `routing.request.qs` entries whose expression evaluates to
+ * undefined — they end up as the string "undefined" in the URL. This hook reads
+ * the parameter value at execution time and adds it to qs only when non-blank.
+ */
+function makeFilterPreSend(
+	paramName: string,
+	qsKey: string,
+): (this: { getNodeParameter: (name: string, fallback?: unknown) => unknown }, requestOptions: IHttpRequestOptions) => Promise<IHttpRequestOptions> {
+	return async function (
+		this: { getNodeParameter: (name: string, fallback?: unknown) => unknown },
+		requestOptions: IHttpRequestOptions,
+	): Promise<IHttpRequestOptions> {
+		const value = (this.getNodeParameter(paramName, '') as string) ?? '';
+		if (!value) {
+			return requestOptions;
+		}
+		return {
+			...requestOptions,
+			qs: {
+				...(requestOptions.qs ?? {}),
+				[qsKey]: value,
+			},
+		};
+	};
+}
+
+export const warehouseFilterNamePreSend = makeFilterPreSend('filterName', 'name-eq');
+export const warehouseStockFilterWarehouseIdPreSend = makeFilterPreSend('filterWarehouseId', 'warehouseId-eq');
+export const warehouseStockFilterArticleIdPreSend = makeFilterPreSend('filterArticleId', 'articleId-eq');
+export const movementFilterArticleIdPreSend = makeFilterPreSend('filterArticleId', 'articleId-eq');
+export const movementFilterWarehouseIdPreSend = makeFilterPreSend('filterWarehouseId', 'warehouseId-eq');
+export const movementFilterEntryDateFromPreSend = makeFilterPreSend('filterEntryDateFrom', 'entryDate-ge');
+export const movementFilterEntryDateToPreSend = makeFilterPreSend('filterEntryDateTo', 'entryDate-le');
+export const movementFilterMovementTypePreSend = makeFilterPreSend('filterMovementType', 'stockMovementType-eq');
 
 // ─── warehouse ───────────────────────────────────────────────────────────────
 
@@ -170,17 +237,11 @@ export const warehouseFields: INodeProperties[] = [
 				},
 			},
 			{
-				// Only offered for update — create uses the required top-level name field
 				displayName: 'Name',
 				name: 'name',
 				type: 'string',
 				default: '',
 				description: 'Name of the warehouse',
-				displayOptions: {
-					show: {
-						operation: ['update'],
-					},
-				},
 				routing: {
 					send: {
 						type: 'body',
@@ -218,15 +279,25 @@ export const warehouseFields: INodeProperties[] = [
 	},
 
 	// Return All / Limit for list
-	...returnAllOrLimit.map((field) => ({
-		...field,
+	{
+		...returnAllOrLimit[0],
 		displayOptions: {
 			show: {
 				resource: ['warehouse'],
 				operation: ['list'],
 			},
 		},
-	})),
+	},
+	{
+		...returnAllOrLimit[1],
+		displayOptions: {
+			show: {
+				resource: ['warehouse'],
+				operation: ['list'],
+				returnAll: [false],
+			},
+		},
+	},
 
 	// Quick-filter by name (string equality)
 	{
@@ -243,8 +314,7 @@ export const warehouseFields: INodeProperties[] = [
 		},
 		routing: {
 			send: {
-				type: 'query',
-				property: 'name-eq',
+				preSend: [warehouseFilterNamePreSend],
 			},
 		},
 	},
@@ -349,15 +419,25 @@ export const warehouseStockFields: INodeProperties[] = [
 		},
 	},
 
-	...returnAllOrLimit.map((field) => ({
-		...field,
+	{
+		...returnAllOrLimit[0],
 		displayOptions: {
 			show: {
 				resource: ['warehouseStock'],
 				operation: ['list'],
 			},
 		},
-	})),
+	},
+	{
+		...returnAllOrLimit[1],
+		displayOptions: {
+			show: {
+				resource: ['warehouseStock'],
+				operation: ['list'],
+				returnAll: [false],
+			},
+		},
+	},
 
 	{
 		displayName: 'Filter by Warehouse',
@@ -373,8 +453,7 @@ export const warehouseStockFields: INodeProperties[] = [
 		},
 		routing: {
 			send: {
-				type: 'query',
-				property: 'warehouseId-eq',
+				preSend: [warehouseStockFilterWarehouseIdPreSend],
 			},
 		},
 	},
@@ -393,8 +472,7 @@ export const warehouseStockFields: INodeProperties[] = [
 		},
 		routing: {
 			send: {
-				type: 'query',
-				property: 'articleId-eq',
+				preSend: [warehouseStockFilterArticleIdPreSend],
 			},
 		},
 	},
@@ -628,24 +706,12 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 				name: 'targetStoragePlaceId',
 				type: 'string',
 				default: '',
-				description: 'Storage place (bin/location) to receive goods into',
+				description:
+					'Storage place (bin/location) to receive goods into. The warehouse is inferred from the storage place.',
 				routing: {
 					send: {
 						type: 'body',
 						property: 'targetStoragePlaceId',
-					},
-				},
-			},
-			{
-				displayName: 'Warehouse ID',
-				name: 'warehouseId',
-				type: 'string',
-				default: '',
-				description: 'Warehouse to receive goods into',
-				routing: {
-					send: {
-						type: 'body',
-						property: 'warehouseId',
 					},
 				},
 			},
@@ -737,7 +803,8 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 				name: 'sourceStoragePlaceId',
 				type: 'string',
 				default: '',
-				description: 'Storage place (bin/location) to issue goods from',
+				description:
+					'Storage place (bin/location) to issue goods from. The warehouse is inferred from the storage place.',
 				routing: {
 					send: {
 						type: 'body',
@@ -745,31 +812,28 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 					},
 				},
 			},
-			{
-				displayName: 'Warehouse ID',
-				name: 'warehouseId',
-				type: 'string',
-				default: '',
-				description: 'Warehouse to issue goods from',
-				routing: {
-					send: {
-						type: 'body',
-						property: 'warehouseId',
-					},
-				},
-			},
 		],
 	},
 
-	...returnAllOrLimit.map((field) => ({
-		...field,
+	{
+		...returnAllOrLimit[0],
 		displayOptions: {
 			show: {
 				resource: ['warehouseStockMovement'],
 				operation: ['list'],
 			},
 		},
-	})),
+	},
+	{
+		...returnAllOrLimit[1],
+		displayOptions: {
+			show: {
+				resource: ['warehouseStockMovement'],
+				operation: ['list'],
+				returnAll: [false],
+			},
+		},
+	},
 
 	{
 		displayName: 'Filter by Article',
@@ -785,8 +849,7 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 		},
 		routing: {
 			send: {
-				type: 'query',
-				property: 'articleId-eq',
+				preSend: [movementFilterArticleIdPreSend],
 			},
 		},
 	},
@@ -804,8 +867,7 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 		},
 		routing: {
 			send: {
-				type: 'query',
-				property: 'warehouseId-eq',
+				preSend: [movementFilterWarehouseIdPreSend],
 			},
 		},
 	},
@@ -824,8 +886,7 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 		},
 		routing: {
 			send: {
-				type: 'query',
-				property: 'entryDate-ge',
+				preSend: [movementFilterEntryDateFromPreSend],
 			},
 		},
 	},
@@ -844,8 +905,7 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 		},
 		routing: {
 			send: {
-				type: 'query',
-				property: 'entryDate-le',
+				preSend: [movementFilterEntryDateToPreSend],
 			},
 		},
 	},
@@ -854,8 +914,9 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 		name: 'filterMovementType',
 		type: 'string',
 		default: '',
-		description: 'Filter by movement type (e.g. INCOMING, OUTGOING)',
-		placeholder: 'e.g. INCOMING',
+		description:
+			'Filter by stock movement type. Common values: IN, OUT, IN_PURCHASE_ORDER, OUT_PRODUCTION_ORDER, IN_TRANSFER, OUT_TRANSFER.',
+		placeholder: 'e.g. IN',
 		displayOptions: {
 			show: {
 				resource: ['warehouseStockMovement'],
@@ -864,8 +925,7 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 		},
 		routing: {
 			send: {
-				type: 'query',
-				property: 'movementType-eq',
+				preSend: [movementFilterMovementTypePreSend],
 			},
 		},
 	},
