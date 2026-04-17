@@ -10,12 +10,15 @@ import { NodeOperationError } from 'n8n-workflow';
 /** Credential type name — kept as a const to prevent silent typos. */
 const CREDENTIAL_NAME = 'weclappApi';
 
-/** Shape returned by GET /webhook */
+/** Shape returned by GET /webhook (weclapp OpenAPI: webhook schema) */
 interface WeclappWebhook {
 	id: string;
 	url: string;
-	event: string;
-	active?: boolean;
+	entityName: string;
+	requestMethod: 'GET' | 'POST';
+	atCreate: boolean;
+	atUpdate: boolean;
+	atDelete: boolean;
 }
 
 /** Shape of weclapp list response */
@@ -25,7 +28,7 @@ interface WeclappListResponse {
 
 /** Stored per-workflow-node to survive activate/deactivate cycles */
 interface TriggerStaticData {
-	weclappWebhookIds?: string[];
+	weclappWebhookId?: string;
 }
 
 /**
@@ -138,8 +141,9 @@ export class WeclappTrigger implements INodeType {
 	webhookMethods = {
 		default: {
 			/**
-			 * Check whether a weclapp webhook already exists for our n8n endpoint URL.
-			 * Filters by url-eq so only an exact URL match counts as "already registered".
+			 * Check whether a weclapp webhook already exists for our n8n endpoint URL
+			 * and the selected entity. Filters by both url-eq AND entityName-eq so that
+			 * multiple triggers sharing the same n8n instance do not collide.
 			 */
 			async checkExists(this: IHookFunctions): Promise<boolean> {
 				const credentials = await this.getCredentials<{ baseUrl: string }>(CREDENTIAL_NAME);
@@ -148,28 +152,36 @@ export class WeclappTrigger implements INodeType {
 					return false;
 				}
 
+				const entityName = this.getNodeParameter('entityName') as string;
+
 				const response = (await this.helpers.httpRequestWithAuthentication.call(
 					this,
 					CREDENTIAL_NAME,
 					{
 						method: 'GET',
 						url: buildUrl(credentials.baseUrl, '/webhook'),
-						qs: { 'url-eq': webhookUrl },
+						qs: {
+							'url-eq': webhookUrl,
+							'entityName-eq': entityName,
+						},
 						json: true,
 					},
 				)) as WeclappListResponse;
 
 				const rows = response?.result ?? [];
-				return rows.some((row) => row.url === webhookUrl);
+				return rows.some((row) => row.url === webhookUrl && row.entityName === entityName);
 			},
 
 			/**
-			 * Register one weclapp webhook per selected event (e.g. salesOrder.created).
-			 * Stores all created webhook IDs in workflow static data so delete() can clean up.
+			 * Register ONE weclapp webhook for the selected entity with boolean flags
+			 * derived from the selected events array.
 			 *
-			 * weclapp's /webhook endpoint accepts one event string per subscription, so
-			 * selecting three events creates three rows. This is the correct pattern for
-			 * the weclapp webhook API.
+			 * weclapp's /webhook schema uses a single row per URL+entity combination
+			 * with atCreate/atUpdate/atDelete booleans — NOT one row per event.
+			 * Sending the old { event, active } shape results in HTTP 400 from weclapp.
+			 *
+			 * Required POST body fields (per OpenAPI):
+			 *   entityName, url, requestMethod, atCreate, atUpdate, atDelete
 			 */
 			async create(this: IHookFunctions): Promise<boolean> {
 				const credentials = await this.getCredentials<{ baseUrl: string }>(CREDENTIAL_NAME);
@@ -185,68 +197,65 @@ export class WeclappTrigger implements INodeType {
 					throw new NodeOperationError(this.getNode(), 'At least one event must be selected');
 				}
 
-				const responses = await Promise.all(
-					events.map(async (event) => {
-						const response = (await this.helpers.httpRequestWithAuthentication.call(
-							this,
-							CREDENTIAL_NAME,
-							{
-								method: 'POST',
-								url: buildUrl(credentials.baseUrl, '/webhook'),
-								body: {
-									url: webhookUrl,
-									event: `${entityName}.${event}`,
-									active: true,
-								},
-								json: true,
-							},
-						)) as { id: string };
+				const response = (await this.helpers.httpRequestWithAuthentication.call(
+					this,
+					CREDENTIAL_NAME,
+					{
+						method: 'POST',
+						url: buildUrl(credentials.baseUrl, '/webhook'),
+						body: {
+							entityName,
+							url: webhookUrl,
+							requestMethod: 'POST',
+							atCreate: events.includes('created'),
+							atUpdate: events.includes('updated'),
+							atDelete: events.includes('deleted'),
+						},
+						json: true,
+					},
+				)) as { id: string };
 
-						if (!response?.id) {
-							throw new NodeOperationError(
-								this.getNode(),
-								`weclapp did not return an id for event "${entityName}.${event}"`,
-							);
-						}
-						return response.id;
-					}),
-				);
+				if (!response?.id) {
+					throw new NodeOperationError(
+						this.getNode(),
+						`weclapp did not return an id for entity "${entityName}"`,
+					);
+				}
 
 				const staticData = this.getWorkflowStaticData('node') as TriggerStaticData;
-				staticData.weclappWebhookIds = responses;
+				staticData.weclappWebhookId = response.id;
 
 				return true;
 			},
 
 			/**
-			 * Remove all weclapp webhook subscriptions that were created by this node.
-			 * IDs are read from workflow static data (set during create).
+			 * Remove the weclapp webhook subscription that was created by this node.
+			 * The ID is read from workflow static data (set during create).
 			 *
-			 * Failures for individual DELETE calls are swallowed so that a partially
-			 * cleaned-up state (e.g. already manually deleted in weclapp) does not
-			 * prevent the workflow from deactivating cleanly.
+			 * Failure is swallowed so that a partially cleaned-up state (e.g. already
+			 * manually deleted in weclapp) does not prevent the workflow from deactivating.
 			 */
 			async delete(this: IHookFunctions): Promise<boolean> {
 				const staticData = this.getWorkflowStaticData('node') as TriggerStaticData;
-				const ids = staticData.weclappWebhookIds ?? [];
+				const id = staticData.weclappWebhookId;
 
-				if (ids.length === 0) {
+				if (!id) {
 					return true;
 				}
 
 				const credentials = await this.getCredentials<{ baseUrl: string }>(CREDENTIAL_NAME);
 
-				await Promise.allSettled(
-					ids.map((id) =>
-						this.helpers.httpRequestWithAuthentication.call(this, CREDENTIAL_NAME, {
-							method: 'DELETE',
-							url: buildUrl(credentials.baseUrl, `/webhook/id/${id}`),
-							json: true,
-						}),
-					),
-				);
+				await this.helpers.httpRequestWithAuthentication
+					.call(this, CREDENTIAL_NAME, {
+						method: 'DELETE',
+						url: buildUrl(credentials.baseUrl, `/webhook/id/${id}`),
+						json: true,
+					})
+					.catch(() => {
+						// Swallow: weclapp row may have been removed manually already.
+					});
 
-				staticData.weclappWebhookIds = [];
+				staticData.weclappWebhookId = undefined;
 				return true;
 			},
 		},

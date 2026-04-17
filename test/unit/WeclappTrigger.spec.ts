@@ -7,7 +7,7 @@ import { WeclappTrigger } from '../../nodes/WeclappTrigger/WeclappTrigger.node';
 // ---------------------------------------------------------------------------
 
 interface StaticData {
-	weclappWebhookIds?: string[];
+	weclappWebhookId?: string;
 }
 
 function makeMockHook(overrides: {
@@ -118,28 +118,44 @@ describe('WeclappTrigger – checkExists', () => {
 		expect(result).toBe(false);
 	});
 
-	it('returns true when a webhook with the same URL is found', async () => {
+	it('returns true when a webhook with the same URL and entityName is found', async () => {
 		const url = 'https://n8n.example.com/webhook/abc123';
 		const mock = makeMockHook({
 			webhookUrl: url,
+			entityName: 'salesOrder',
 			listResponse: {
-				result: [{ id: 'wh-42', url, event: 'salesOrder.created', active: true }],
+				result: [
+					{
+						id: 'wh-42',
+						url,
+						entityName: 'salesOrder',
+						requestMethod: 'POST',
+						atCreate: true,
+						atUpdate: false,
+						atDelete: false,
+					},
+				],
 			},
 		});
 		const result = await node.webhookMethods.default.checkExists.call(mock);
 		expect(result).toBe(true);
 	});
 
-	it('returns false when a different URL is in results', async () => {
+	it('returns false when URL matches but entityName differs', async () => {
+		const url = 'https://n8n.example.com/webhook/abc123';
 		const mock = makeMockHook({
-			webhookUrl: 'https://n8n.example.com/webhook/abc123',
+			webhookUrl: url,
+			entityName: 'party',
 			listResponse: {
 				result: [
 					{
-						id: 'wh-99',
-						url: 'https://other.example.com/webhook/xyz',
-						event: 'salesOrder.created',
-						active: true,
+						id: 'wh-42',
+						url,
+						entityName: 'salesOrder', // different entity
+						requestMethod: 'POST',
+						atCreate: true,
+						atUpdate: false,
+						atDelete: false,
 					},
 				],
 			},
@@ -148,9 +164,31 @@ describe('WeclappTrigger – checkExists', () => {
 		expect(result).toBe(false);
 	});
 
-	it('calls the correct GET /webhook URL with url-eq filter', async () => {
+	it('returns false when a different URL is in results', async () => {
+		const mock = makeMockHook({
+			webhookUrl: 'https://n8n.example.com/webhook/abc123',
+			entityName: 'salesOrder',
+			listResponse: {
+				result: [
+					{
+						id: 'wh-99',
+						url: 'https://other.example.com/webhook/xyz',
+						entityName: 'salesOrder',
+						requestMethod: 'POST',
+						atCreate: true,
+						atUpdate: false,
+						atDelete: false,
+					},
+				],
+			},
+		});
+		const result = await node.webhookMethods.default.checkExists.call(mock);
+		expect(result).toBe(false);
+	});
+
+	it('calls GET /webhook with both url-eq and entityName-eq filters', async () => {
 		const webhookUrl = 'https://n8n.example.com/webhook/abc123';
-		const mock = makeMockHook({ webhookUrl });
+		const mock = makeMockHook({ webhookUrl, entityName: 'party' });
 		await node.webhookMethods.default.checkExists.call(mock);
 
 		const callArg = (mock.helpers.httpRequestWithAuthentication as ReturnType<typeof vi.fn>).mock
@@ -159,6 +197,7 @@ describe('WeclappTrigger – checkExists', () => {
 		expect(callArg[1].method).toBe('GET');
 		expect(callArg[1].url).toContain('/webhook');
 		expect(callArg[1].qs?.['url-eq']).toBe(webhookUrl);
+		expect(callArg[1].qs?.['entityName-eq']).toBe('party');
 	});
 
 	it('returns false when webhookUrl is undefined', async () => {
@@ -176,22 +215,20 @@ describe('WeclappTrigger – checkExists', () => {
 describe('WeclappTrigger – create', () => {
 	const node = new WeclappTrigger();
 
-	it('POSTs one webhook per event and stores IDs', async () => {
+	it('POSTs exactly ONE webhook row and stores the returned ID', async () => {
 		const staticData: StaticData = {};
-		let callCount = 0;
+		let postCallCount = 0;
 		const mock = makeMockHook({
 			entityName: 'salesOrder',
 			events: ['created', 'updated'],
 			staticData,
-			postResponse: undefined as unknown as object, // override per-call
 		});
 
-		// Return distinct IDs per call
 		(mock.helpers.httpRequestWithAuthentication as ReturnType<typeof vi.fn>).mockImplementation(
 			(_cred: string, opts: { method: string }) => {
 				if (opts.method === 'POST') {
-					callCount++;
-					return Promise.resolve({ id: `wh-${callCount}` });
+					postCallCount++;
+					return Promise.resolve({ id: 'wh-1' });
 				}
 				return Promise.resolve({});
 			},
@@ -199,41 +236,74 @@ describe('WeclappTrigger – create', () => {
 
 		const result = await node.webhookMethods.default.create.call(mock);
 		expect(result).toBe(true);
-		expect(callCount).toBe(2); // one per event
-		expect(staticData.weclappWebhookIds).toEqual(['wh-1', 'wh-2']);
+		expect(postCallCount).toBe(1); // ONE row, not one per event
+		expect(staticData.weclappWebhookId).toBe('wh-1');
 	});
 
-	it('sends correct event string format (entityName.event)', async () => {
-		const calls: Array<{ body: { event: string } }> = [];
-		const mock = makeMockHook({ entityName: 'article', events: ['deleted'] });
+	it('sends correct POST body with entityName, requestMethod, and boolean flags', async () => {
+		const calls: Array<{ body: Record<string, unknown> }> = [];
+		const mock = makeMockHook({
+			entityName: 'article',
+			events: ['created', 'deleted'],
+			staticData: {},
+		});
 		(mock.helpers.httpRequestWithAuthentication as ReturnType<typeof vi.fn>).mockImplementation(
-			(_cred: string, opts: { method: string; body: { event: string } }) => {
+			(_cred: string, opts: { method: string; body: Record<string, unknown> }) => {
 				calls.push(opts);
 				return Promise.resolve({ id: 'wh-x' });
 			},
 		);
 
 		await node.webhookMethods.default.create.call(mock);
-		expect(calls[0].body.event).toBe('article.deleted');
+
+		expect(calls).toHaveLength(1);
+		const body = calls[0].body;
+		expect(body.entityName).toBe('article');
+		expect(body.requestMethod).toBe('POST');
+		expect(body.atCreate).toBe(true);
+		expect(body.atUpdate).toBe(false); // not in events array
+		expect(body.atDelete).toBe(true);
+		expect(body.url).toBe('https://n8n.example.com/webhook/abc123');
 	});
 
-	it('sets active: true on each POST body', async () => {
-		const calls: Array<{ body: { active: boolean } }> = [];
-		const mock = makeMockHook({ events: ['created'] });
+	it('sets atUpdate=true when updated is in events', async () => {
+		const calls: Array<{ body: Record<string, unknown> }> = [];
+		const mock = makeMockHook({ events: ['updated'], staticData: {} });
 		(mock.helpers.httpRequestWithAuthentication as ReturnType<typeof vi.fn>).mockImplementation(
-			(_cred: string, opts: { body: { active: boolean } }) => {
+			(_cred: string, opts: { body: Record<string, unknown> }) => {
 				calls.push(opts);
 				return Promise.resolve({ id: 'wh-1' });
 			},
 		);
 
 		await node.webhookMethods.default.create.call(mock);
-		expect(calls[0].body.active).toBe(true);
+		expect(calls[0].body.atCreate).toBe(false);
+		expect(calls[0].body.atUpdate).toBe(true);
+		expect(calls[0].body.atDelete).toBe(false);
+	});
+
+	it('does NOT send event string or active field (old broken schema)', async () => {
+		const calls: Array<{ body: Record<string, unknown> }> = [];
+		const mock = makeMockHook({ events: ['created'], staticData: {} });
+		(mock.helpers.httpRequestWithAuthentication as ReturnType<typeof vi.fn>).mockImplementation(
+			(_cred: string, opts: { body: Record<string, unknown> }) => {
+				calls.push(opts);
+				return Promise.resolve({ id: 'wh-1' });
+			},
+		);
+
+		await node.webhookMethods.default.create.call(mock);
+		expect(calls[0].body).not.toHaveProperty('event');
+		expect(calls[0].body).not.toHaveProperty('active');
 	});
 
 	it('strips trailing slash from baseUrl before posting', async () => {
 		const calls: Array<{ url: string }> = [];
-		const mock = makeMockHook({ baseUrl: 'https://tenant.weclapp.com/webapp/api/v2/', events: ['created'] });
+		const mock = makeMockHook({
+			baseUrl: 'https://tenant.weclapp.com/webapp/api/v2/',
+			events: ['created'],
+			staticData: {},
+		});
 		(mock.helpers.httpRequestWithAuthentication as ReturnType<typeof vi.fn>).mockImplementation(
 			(_cred: string, opts: { url: string }) => {
 				calls.push(opts);
@@ -253,9 +323,9 @@ describe('WeclappTrigger – create', () => {
 describe('WeclappTrigger – delete', () => {
 	const node = new WeclappTrigger();
 
-	it('DELETEs each stored webhook ID', async () => {
+	it('DELETEs the stored webhook ID', async () => {
 		const deletedPaths: string[] = [];
-		const staticData: StaticData = { weclappWebhookIds: ['wh-1', 'wh-2', 'wh-3'] };
+		const staticData: StaticData = { weclappWebhookId: 'wh-1' };
 		const mock = makeMockHook({ staticData });
 		(mock.helpers.httpRequestWithAuthentication as ReturnType<typeof vi.fn>).mockImplementation(
 			(_cred: string, opts: { method: string; url: string }) => {
@@ -266,39 +336,34 @@ describe('WeclappTrigger – delete', () => {
 
 		const result = await node.webhookMethods.default.delete.call(mock);
 		expect(result).toBe(true);
-		expect(deletedPaths).toHaveLength(3);
+		expect(deletedPaths).toHaveLength(1);
 		expect(deletedPaths[0]).toContain('wh-1');
-		expect(deletedPaths[1]).toContain('wh-2');
-		expect(deletedPaths[2]).toContain('wh-3');
 	});
 
-	it('clears stored IDs after deletion', async () => {
-		const staticData: StaticData = { weclappWebhookIds: ['wh-1'] };
+	it('clears stored ID after deletion', async () => {
+		const staticData: StaticData = { weclappWebhookId: 'wh-1' };
 		const mock = makeMockHook({ staticData });
 		await node.webhookMethods.default.delete.call(mock);
-		expect(staticData.weclappWebhookIds).toEqual([]);
+		expect(staticData.weclappWebhookId).toBeUndefined();
 	});
 
-	it('returns true even when no IDs are stored', async () => {
+	it('returns true even when no ID is stored', async () => {
 		const staticData: StaticData = {};
 		const mock = makeMockHook({ staticData });
 		const result = await node.webhookMethods.default.delete.call(mock);
 		expect(result).toBe(true);
 	});
 
-	it('continues and returns true when a DELETE call fails (cleanup resilience)', async () => {
-		const staticData: StaticData = { weclappWebhookIds: ['wh-good', 'wh-missing'] };
+	it('continues and returns true when DELETE call fails (cleanup resilience)', async () => {
+		const staticData: StaticData = { weclappWebhookId: 'wh-missing' };
 		const mock = makeMockHook({ staticData });
-		(mock.helpers.httpRequestWithAuthentication as ReturnType<typeof vi.fn>).mockImplementation(
-			(_cred: string, opts: { url: string }) => {
-				if (opts.url.includes('wh-missing')) return Promise.reject(new Error('404 Not Found'));
-				return Promise.resolve({});
-			},
+		(mock.helpers.httpRequestWithAuthentication as ReturnType<typeof vi.fn>).mockRejectedValue(
+			new Error('404 Not Found'),
 		);
 
 		const result = await node.webhookMethods.default.delete.call(mock);
 		expect(result).toBe(true);
-		expect(staticData.weclappWebhookIds).toEqual([]);
+		expect(staticData.weclappWebhookId).toBeUndefined();
 	});
 });
 
