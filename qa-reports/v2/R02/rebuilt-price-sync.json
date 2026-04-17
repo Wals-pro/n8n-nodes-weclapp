@@ -1,0 +1,625 @@
+{
+  "name": "QA2-R02-weclapp-Price-SalesChannel-Sync",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "r02v2-schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "qa2-r02-price-saleschannel-sync",
+        "responseMode": "lastNode",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "id": "r02v2-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "qa2-r02-price-saleschannel-sync",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-tenant",
+              "name": "weclappTenant",
+              "value": "testhandel",
+              "type": "string"
+            },
+            {
+              "id": "cfg-cred-id",
+              "name": "credentialId",
+              "value": "jebRfSixFZZxu8qH",
+              "type": "string"
+            },
+            {
+              "id": "cfg-source",
+              "name": "sourceSalesChannel",
+              "value": "GROSS1",
+              "type": "string"
+            },
+            {
+              "id": "cfg-divisor",
+              "name": "taxDivisor",
+              "value": 1.19,
+              "type": "number"
+            },
+            {
+              "id": "cfg-precision",
+              "name": "netPrecision",
+              "value": 2,
+              "type": "number"
+            },
+            {
+              "id": "cfg-pageSize",
+              "name": "pageSize",
+              "value": 1000,
+              "type": "number"
+            },
+            {
+              "id": "cfg-maxPages",
+              "name": "maxPages",
+              "value": 100,
+              "type": "number"
+            },
+            {
+              "id": "cfg-batchSize",
+              "name": "batchSize",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "cfg-batchInterval",
+              "name": "batchInterval",
+              "value": 100,
+              "type": "number"
+            },
+            {
+              "id": "cfg-effective-ts",
+              "name": "effectiveTimestamp",
+              "value": "={{ Date.now() }}",
+              "type": "number"
+            },
+            {
+              "id": "cfg-requested-article-numbers",
+              "name": "requestedArticleNumbers",
+              "value": "={{ ($json.body && $json.body.articleNumbers) || $json.articleNumbers || [] }}",
+              "type": "array"
+            },
+            {
+              "id": "cfg-channel-rules",
+              "name": "channelRules",
+              "value": "={{ {} }}",
+              "type": "object"
+            },
+            {
+              "id": "cfg-dryRun",
+              "name": "dryRun",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "r02v2-constants",
+      "name": "Constants",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "call",
+        "method": "GET",
+        "entityPath": "salesChannel",
+        "action": "activeSalesChannels",
+        "queryParameters": {}
+      },
+      "id": "r02v2-get-channels",
+      "name": "weclapp GET salesChannel activeSalesChannels",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        448,
+        100
+      ],
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return (() => {\nconst DEFAULT_SOURCE_SALES_CHANNEL = 'GROSS1';\nconst DEFAULT_TAX_DIVISOR = 1.19;\nconst DEFAULT_NET_PRECISION = 2;\nconst DEFAULT_SCALE_VALUE = '0';\nconst MINIMAL_ARTICLE_PROPERTIES = [\n  'id',\n  'articleNumber',\n  'availableForSalesChannels',\n  'articlePrices.id',\n  'articlePrices.version',\n  'articlePrices.currencyId',\n  'articlePrices.customerId',\n  'articlePrices.description',\n  'articlePrices.endDate',\n  'articlePrices.price',\n  'articlePrices.priceScaleType',\n  'articlePrices.priceScaleValue',\n  'articlePrices.reductionAdditions',\n  'articlePrices.salesChannel',\n  'articlePrices.startDate',\n];\n\nfunction toFiniteNumber(value) {\n  const parsed = Number(value);\n  return Number.isFinite(parsed) ? parsed : null;\n}\n\nfunction toDistributionChannelKey(entry) {\n  if (typeof entry === 'string') return entry.trim();\n  if (entry && typeof entry === 'object' && entry.key !== null && entry.key !== undefined) return String(entry.key).trim();\n  return '';\n}\n\nfunction normalizePriceString(value, precision = 5) {\n  const parsed = toFiniteNumber(value);\n  if (parsed === null) return null;\n  const factor = 10 ** precision;\n  const rounded = Math.round((parsed || 0) * factor) / factor;\n  const fixed = rounded.toFixed(precision);\n  return fixed.includes('.') ? fixed.replace(/\\.?0+$/, '') : fixed;\n}\n\nfunction normalizeScaleValue(value) {\n  const parsed = normalizePriceString(value === null || value === undefined ? DEFAULT_SCALE_VALUE : value, 5);\n  return parsed === null ? DEFAULT_SCALE_VALUE : parsed;\n}\n\nfunction quoteFilterString(value) {\n  const stringValue = String(value ?? '');\n  return `\"${stringValue.replace(/\\\\/g, '\\\\\\\\').replace(/\"/g, '\\\\\"')}\"`;\n}\n\nfunction buildCurrentTierZeroPredicate({ salesChannel, effectiveTimestamp }) {\n  return [\n    `(salesChannel = ${quoteFilterString(salesChannel)})`,\n    '(customerId null)',\n    '(priceScaleValue = 0)',\n    `((startDate null) or (startDate <= ${Number(effectiveTimestamp)}))`,\n    `((endDate null) or (endDate >= ${Number(effectiveTimestamp)}))`,\n    '(priceScaleType = \"SCALE_FROM\")',\n  ].join(' and ');\n}\n\nfunction normalizeStringList(value) {\n  if (Array.isArray(value)) return value.map(e => String(e || '').trim()).filter(Boolean);\n  if (value === null || value === undefined || value === '') return [];\n  if (typeof value === 'string') {\n    try {\n      const parsed = JSON.parse(value);\n      if (Array.isArray(parsed)) return parsed.map(e => String(e || '').trim()).filter(Boolean);\n    } catch (_) {}\n    return value.split(',').map(e => String(e || '').trim()).filter(Boolean);\n  }\n  return [String(value).trim()].filter(Boolean);\n}\n\nfunction buildTargetChannels(activeSalesChannels, sourceSalesChannel) {\n  const output = { gross: [], net: [] };\n  const seen = new Set();\n  for (const entry of activeSalesChannels) {\n    const key = toDistributionChannelKey(entry);\n    if (!key || key === sourceSalesChannel || seen.has(key)) continue;\n    seen.add(key);\n    if (key.startsWith('GROSS')) output.gross.push(key);\n    else if (key.startsWith('NET')) output.net.push(key);\n  }\n  return output;\n}\n\nconst activeSalesChannels = $('weclapp GET salesChannel activeSalesChannels').first().json.result || [];\nconst constants = $('Constants').first().json;\nconst sourceSalesChannel = constants.sourceSalesChannel || DEFAULT_SOURCE_SALES_CHANNEL;\nconst effectiveTimestamp = constants.effectiveTimestamp;\n\nconst targetChannels = buildTargetChannels(activeSalesChannels, sourceSalesChannel);\n\nconst sourcePredicate = buildCurrentTierZeroPredicate({ salesChannel: sourceSalesChannel, effectiveTimestamp });\nconst articlePriceFieldRef = `articlePrices[${sourcePredicate}].salesChannel`;\n\nconst filterClauses = [\n  `(${articlePriceFieldRef} = ${quoteFilterString(sourceSalesChannel)})`,\n];\n\nconst scopedArticleNumbers = normalizeStringList(constants.requestedArticleNumbers);\nif (scopedArticleNumbers.length > 0) {\n  filterClauses.push(`(articleNumber in [${scopedArticleNumbers.map(n => quoteFilterString(n)).join(', ')}])`);\n}\n\nreturn [{\n  json: {\n    articleFilter: filterClauses.join(' and '),\n    articleProperties: MINIMAL_ARTICLE_PROPERTIES.join(','),\n    targetChannels,\n    scopedArticleNumbers,\n    effectiveTimestamp,\n  },\n  pairedItem: { item: 0 },\n}];\n})();"
+      },
+      "id": "r02v2-query-config",
+      "name": "Code build article query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "call",
+        "method": "GET",
+        "entityPath": "article",
+        "queryParameters": {
+          "parameter": [
+            {
+              "key": "pageSize",
+              "value": "={{ $('Constants').first().json.pageSize }}"
+            },
+            {
+              "key": "active-eq",
+              "value": "true"
+            },
+            {
+              "key": "availableInSale-eq",
+              "value": "true"
+            },
+            {
+              "key": "filter",
+              "value": "={{ $('Code build article query').first().json.articleFilter }}"
+            },
+            {
+              "key": "properties",
+              "value": "={{ $('Code build article query').first().json.articleProperties }}"
+            }
+          ]
+        }
+      },
+      "id": "r02v2-get-articles",
+      "name": "weclapp GET articles",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        896,
+        100
+      ],
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "r02v2-if-articles-cond",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              },
+              "leftValue": "={{ $json.result.length }}",
+              "rightValue": 0
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "r02v2-if-articles",
+      "name": "If articles found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r02v2-sync-msg",
+              "name": "message",
+              "value": "All prices already in sync",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "r02v2-all-sync",
+      "name": "All prices in sync",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1344,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "result",
+        "options": {}
+      },
+      "id": "r02v2-split",
+      "name": "Split Out articles",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        0
+      ],
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "return (() => {\n// \u2500\u2500 helpers (same as LIVE workflow, kept canonical) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst DEFAULT_SOURCE_SALES_CHANNEL = 'GROSS1';\nconst DEFAULT_TAX_DIVISOR = 1.19;\nconst DEFAULT_NET_PRECISION = 2;\nconst DEFAULT_SCALE_VALUE = '0';\nconst WRITEABLE_PRICE_KEYS = [\n  'id', 'version', 'currencyId', 'customerId', 'description', 'endDate',\n  'price', 'priceScaleType', 'priceScaleValue', 'reductionAdditions',\n  'salesChannel', 'startDate',\n];\n\nfunction toFiniteNumber(v) {\n  const n = Number(v);\n  return Number.isFinite(n) ? n : null;\n}\nfunction toDistributionChannelKey(entry) {\n  if (typeof entry === 'string') return entry.trim();\n  if (entry && typeof entry === 'object' && entry.key != null) return String(entry.key).trim();\n  return '';\n}\nfunction roundToPrecision(value, precision) {\n  const factor = 10 ** precision;\n  return Math.round((Number(value) || 0) * factor) / factor;\n}\nfunction normalizePriceString(value, precision = 5) {\n  const parsed = toFiniteNumber(value);\n  if (parsed === null) return null;\n  const factor = 10 ** precision;\n  const rounded = Math.round((parsed || 0) * factor) / factor;\n  const fixed = rounded.toFixed(precision);\n  return fixed.includes('.') ? fixed.replace(/\\.?0+$/, '') : fixed;\n}\nfunction normalizeScaleValue(value) {\n  const parsed = normalizePriceString(value == null ? DEFAULT_SCALE_VALUE : value, 5);\n  return parsed === null ? DEFAULT_SCALE_VALUE : parsed;\n}\nfunction isGeneralTierZeroPrice(row) {\n  if (!row || (row.customerId !== null && row.customerId !== undefined && row.customerId !== '')) return false;\n  return normalizeScaleValue(row.priceScaleValue) === DEFAULT_SCALE_VALUE;\n}\nfunction isCurrentAt(row, ts) {\n  const s = toFiniteNumber(row.startDate);\n  const e = toFiniteNumber(row.endDate);\n  return (s === null ? true : s <= ts) && (e === null ? true : e >= ts);\n}\n\nfunction buildTargetChannels(article, activeSalesChannels, sourceSalesChannel) {\n  const out = { gross: [], net: [] };\n  const seen = new Set();\n  const avail = Array.isArray(article.availableForSalesChannels)\n    ? new Set(article.availableForSalesChannels.map(String))\n    : null;\n  for (const entry of activeSalesChannels) {\n    const key = toDistributionChannelKey(entry);\n    if (!key || key === sourceSalesChannel || seen.has(key)) continue;\n    seen.add(key);\n    if (avail && avail.size > 0 && !avail.has(key)) continue;\n    if (key.startsWith('GROSS')) out.gross.push(key);\n    else if (key.startsWith('NET')) out.net.push(key);\n  }\n  return out;\n}\n\nfunction applyChannelRule(basePrice, channel, channelRules) {\n  const rule = channelRules[channel];\n  if (!rule) return basePrice;\n  let price = basePrice;\n  if (typeof rule.percentAdd === 'number' && rule.percentAdd !== 0) price *= (1 + rule.percentAdd / 100);\n  if (typeof rule.add === 'number' && rule.add !== 0) price += rule.add;\n  return price;\n}\n\n// \u2500\u2500 Main logic \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n// Output: one item per (articleId, targetChannel) for shouldUpdate=true articles.\n// Each item carries: articleId, articleNumber, salesChannel, grossPrice, currencyId,\n// validFrom, dryRun \u2014 exactly what the weclapp updatePrices node needs.\n\nconst articles = $input.all();\nconst activeSalesChannels = $('weclapp GET salesChannel activeSalesChannels').first().json.result || [];\nconst constants = $('Constants').first().json;\nconst sourceSalesChannel = constants.sourceSalesChannel || DEFAULT_SOURCE_SALES_CHANNEL;\nconst taxDivisor = constants.taxDivisor || DEFAULT_TAX_DIVISOR;\nconst netPrecision = constants.netPrecision || DEFAULT_NET_PRECISION;\nconst channelRules = constants.channelRules || {};\nconst effectiveTimestamp = constants.effectiveTimestamp;\nconst dryRun = constants.dryRun === true;\n\nconst channelItems = [];\nconst skipped = [];\nconst errors = [];\n\nfor (let i = 0; i < articles.length; i++) {\n  const article = articles[i].json;\n  try {\n    const articlePrices = Array.isArray(article.articlePrices) ? article.articlePrices : [];\n    const sourceRows = articlePrices.filter(\n      row => row.salesChannel === sourceSalesChannel && isGeneralTierZeroPrice(row) && isCurrentAt(row, effectiveTimestamp)\n    );\n\n    if (sourceRows.length === 0) {\n      skipped.push({ articleId: article.id, articleNumber: article.articleNumber, status: 'skipped_missing_source_price' });\n      continue;\n    }\n    if (sourceRows.length > 1) {\n      skipped.push({ articleId: article.id, articleNumber: article.articleNumber, status: 'skipped_ambiguous_source_price' });\n      continue;\n    }\n    const sourceRow = sourceRows[0];\n    const sourcePrice = Number(sourceRow.price);\n    const currencyId = String(sourceRow.currencyId || '');\n\n    const targetChannels = buildTargetChannels(article, activeSalesChannels, sourceSalesChannel);\n    const allTargetChannels = [...targetChannels.gross, ...targetChannels.net];\n    if (allTargetChannels.length === 0) {\n      skipped.push({ articleId: article.id, articleNumber: article.articleNumber, status: 'noop_no_target_channels' });\n      continue;\n    }\n\n    // Gross channels\n    for (const channel of targetChannels.gross) {\n      const rule = channelRules[channel];\n      let grossDesired;\n      if (rule && typeof rule.grossTaxMultiplier === 'number') {\n        const netBase = sourcePrice / taxDivisor;\n        grossDesired = roundToPrecision(applyChannelRule(netBase, channel, channelRules) * rule.grossTaxMultiplier, netPrecision);\n      } else if (rule) {\n        grossDesired = roundToPrecision(applyChannelRule(sourcePrice, channel, channelRules), netPrecision);\n      } else {\n        grossDesired = sourcePrice;\n      }\n      channelItems.push({\n        json: {\n          articleId: article.id,\n          articleNumber: article.articleNumber,\n          salesChannel: channel,\n          grossPrice: grossDesired,\n          currencyId,\n          validFrom: effectiveTimestamp,\n          dryRun,\n          sourcePrice: normalizePriceString(sourcePrice, 5),\n        },\n        pairedItem: { item: i },\n      });\n    }\n\n    // Net channels\n    for (const channel of targetChannels.net) {\n      const netBase = sourcePrice / taxDivisor;\n      const netDesired = roundToPrecision(applyChannelRule(netBase, channel, channelRules), netPrecision);\n      channelItems.push({\n        json: {\n          articleId: article.id,\n          articleNumber: article.articleNumber,\n          salesChannel: channel,\n          grossPrice: netDesired,\n          currencyId,\n          validFrom: effectiveTimestamp,\n          dryRun,\n          sourcePrice: normalizePriceString(sourcePrice, 5),\n        },\n        pairedItem: { item: i },\n      });\n    }\n  } catch (err) {\n    errors.push({ articleId: article.id, articleNumber: article.articleNumber, error: err.message });\n  }\n}\n\nif (channelItems.length === 0) {\n  return [{\n    json: {\n      __summaryOnly: true,\n      totalArticles: articles.length,\n      skipped,\n      errors,\n      message: 'No articles require price updates',\n    },\n    pairedItem: { item: 0 },\n  }];\n}\n\n// Prepend a summary item (won't be processed by updatePrices \u2014 guarded by If has updates)\n// All real channel items follow.\nreturn channelItems;\n})();"
+      },
+      "id": "r02v2-code-channels",
+      "name": "Code build channel updates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "r02v2-if-updates-cond",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.__summaryOnly !== true }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "r02v2-if-updates",
+      "name": "If has updates",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1792,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "r02v2-if-dryrun-cond",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.dryRun }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "r02v2-if-dryrun",
+      "name": "If not dry run",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2016,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "article",
+        "operation": "updatePrices",
+        "articleId": {
+          "mode": "id",
+          "value": "={{ $json.articleId }}"
+        },
+        "grossPrice": "={{ $json.grossPrice }}",
+        "currencyId": "={{ $json.currencyId }}",
+        "updatePricesOptions": {
+          "salesChannel": "={{ $json.salesChannel }}",
+          "validFrom": "={{ $json.validFrom }}"
+        }
+      },
+      "id": "r02v2-update-prices",
+      "name": "weclapp updatePrices",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        2240,
+        -200
+      ],
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "r02v2-dry-run-skip",
+      "name": "Dry Run skipped",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "updateResults",
+        "options": {}
+      },
+      "id": "r02v2-aggregate",
+      "name": "Aggregate results",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2464,
+        -200
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "r02v2-noop",
+      "name": "No updates needed",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2016,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## QA2-R02v2 \u2014 weclapp Price SalesChannel Sync (Rebuilt)\n\nRebuild of LIVE-weclapp-Price-SalesChannel-Sync using article.updatePrices\nas a first-class weclapp node operation (no httpRequest fallback).\n\nChanges vs LIVE:\n- GET salesChannels and GET articles use weclapp node (customApiCall)\n- PUT prices uses weclapp node (article \u2192 updatePrices)\n- Code node outputs one item per (articleId, channel) instead of full PUT body\n- dryRun=true in Constants for safe QA execution (gates actual PUT)\n\nCredential: weclapp testhandel (testhandel.weclapp.com)\nBranch: qa2/r02-price-sync",
+        "height": 240,
+        "width": 560,
+        "color": 4
+      },
+      "id": "r02v2-note",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        -160
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Constants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Constants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Constants": {
+      "main": [
+        [
+          {
+            "node": "weclapp GET salesChannel activeSalesChannels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp GET salesChannel activeSalesChannels": {
+      "main": [
+        [
+          {
+            "node": "Code build article query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code build article query": {
+      "main": [
+        [
+          {
+            "node": "weclapp GET articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp GET articles": {
+      "main": [
+        [
+          {
+            "node": "If articles found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If articles found": {
+      "main": [
+        [
+          {
+            "node": "Split Out articles",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "All prices in sync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out articles": {
+      "main": [
+        [
+          {
+            "node": "Code build channel updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code build channel updates": {
+      "main": [
+        [
+          {
+            "node": "If has updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If has updates": {
+      "main": [
+        [
+          {
+            "node": "If not dry run",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No updates needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If not dry run": {
+      "main": [
+        [
+          {
+            "node": "weclapp updatePrices",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Dry Run skipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp updatePrices": {
+      "main": [
+        [
+          {
+            "node": "Aggregate results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}
