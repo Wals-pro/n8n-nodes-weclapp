@@ -163,6 +163,7 @@ export const loadOptions: Record<string, (this: ILoadOptionsFunctions) => Promis
 	getCurrencies: makeSimpleLoadOptions('/currency'),
 	getPaymentMethods: makeSimpleLoadOptions('/paymentMethod'),
 	getTermsOfPayment: makeSimpleLoadOptions('/termOfPayment'),
+	getTicketStatuses: makeSimpleLoadOptions('/ticketStatus'),
 	getTags: makeSimpleLoadOptions('/tag'),
 	getUnits: makeSimpleLoadOptions('/unit'),
 

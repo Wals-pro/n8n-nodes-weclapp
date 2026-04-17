@@ -318,3 +318,25 @@ describe('loadOptions.getUnits', () => {
 		expect(result[0]).toEqual({ name: 'Stück', value: 'un1' });
 	});
 });
+
+describe('loadOptions.getTicketStatuses', () => {
+	it('hits /ticketStatus with pageSize 1000 and maps name/value', async () => {
+		mockApiRequest.mockResolvedValueOnce({
+			result: [
+				{ id: 'ts1', name: 'Open' },
+				{ id: 'ts2', name: 'In Progress' },
+				{ id: 'ts3', name: 'Closed' },
+			],
+		});
+
+		const ctx = makeCtx();
+		const result = await loadOptions.getTicketStatuses.call(ctx);
+
+		expect(mockApiRequest).toHaveBeenCalledWith('GET', '/ticketStatus', undefined, { pageSize: 1000 });
+		expect(result).toEqual([
+			{ name: 'Open', value: 'ts1' },
+			{ name: 'In Progress', value: 'ts2' },
+			{ name: 'Closed', value: 'ts3' },
+		]);
+	});
+});
