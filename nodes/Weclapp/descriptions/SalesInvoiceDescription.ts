@@ -533,11 +533,10 @@ export const salesInvoiceFields: INodeProperties[] = [
 		options: [
 			{ name: '(All)', value: '' },
 			{ name: 'Cancelled', value: 'CANCELLED' },
-			{ name: 'Debit Advice', value: 'DEBIT_ADVICE' },
-			{ name: 'Dispute', value: 'DISPUTE' },
-			{ name: 'Dunning', value: 'DUNNING' },
-			{ name: 'Open', value: 'OPEN' },
-			{ name: 'Paid', value: 'PAID' },
+			{ name: 'Document Created', value: 'DOCUMENT_CREATED' },
+			{ name: 'Entry Completed', value: 'ENTRY_COMPLETED' },
+			{ name: 'New', value: 'NEW' },
+			{ name: 'Open Item Created', value: 'OPEN_ITEM_CREATED' },
 		],
 		displayOptions: {
 			show: {
