@@ -174,6 +174,17 @@ export const documentOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/document/id/{{$parameter["documentId"]}}/download',
 						encoding: 'arraybuffer',
+						returnFullResponse: true,
+					},
+					output: {
+						postReceive: [
+							{
+								type: 'binaryData' as const,
+								properties: {
+									destinationProperty: 'data',
+								},
+							},
+						],
 					},
 				},
 			},
@@ -187,6 +198,17 @@ export const documentOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/document/id/{{$parameter["documentId"]}}/downloadDocumentVersion',
 						encoding: 'arraybuffer',
+						returnFullResponse: true,
+					},
+					output: {
+						postReceive: [
+							{
+								type: 'binaryData' as const,
+								properties: {
+									destinationProperty: 'data',
+								},
+							},
+						],
 					},
 				},
 			},
@@ -200,6 +222,17 @@ export const documentOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/document/id/{{$parameter["documentId"]}}/downloadDocumentVersionsZipped',
 						encoding: 'arraybuffer',
+						returnFullResponse: true,
+					},
+					output: {
+						postReceive: [
+							{
+								type: 'binaryData' as const,
+								properties: {
+									destinationProperty: 'data',
+								},
+							},
+						],
 					},
 				},
 			},

@@ -39,13 +39,13 @@ export const shipmentOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/shipment/id/{{$parameter["shipmentId"]}}/createPickingList',
-						body: {},
 						encoding: 'arraybuffer',
+						returnFullResponse: true,
 					},
 					output: {
 						postReceive: [
 							{
-								type: 'binaryData',
+								type: 'binaryData' as const,
 								properties: {
 									destinationProperty: 'data',
 								},
@@ -154,11 +154,12 @@ export const shipmentOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/shipment/id/{{$parameter["shipmentId"]}}/downloadLatestDeliveryNotePdf',
 						encoding: 'arraybuffer',
+						returnFullResponse: true,
 					},
 					output: {
 						postReceive: [
 							{
-								type: 'binaryData',
+								type: 'binaryData' as const,
 								properties: {
 									destinationProperty: 'data',
 								},
@@ -177,11 +178,12 @@ export const shipmentOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/shipment/id/{{$parameter["shipmentId"]}}/downloadLatestPickingListPdf',
 						encoding: 'arraybuffer',
+						returnFullResponse: true,
 					},
 					output: {
 						postReceive: [
 							{
-								type: 'binaryData',
+								type: 'binaryData' as const,
 								properties: {
 									destinationProperty: 'data',
 								},
@@ -200,11 +202,12 @@ export const shipmentOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/shipment/id/{{$parameter["shipmentId"]}}/downloadLatestShippingLabelPdf',
 						encoding: 'arraybuffer',
+						returnFullResponse: true,
 					},
 					output: {
 						postReceive: [
 							{
-								type: 'binaryData',
+								type: 'binaryData' as const,
 								properties: {
 									destinationProperty: 'data',
 								},
@@ -257,11 +260,12 @@ export const shipmentOperations: INodeProperties[] = [
 						method: 'POST',
 						url: '=/shipment/id/{{$parameter["shipmentId"]}}/printLabel',
 						encoding: 'arraybuffer',
+						returnFullResponse: true,
 					},
 					output: {
 						postReceive: [
 							{
-								type: 'binaryData',
+								type: 'binaryData' as const,
 								properties: {
 									destinationProperty: 'data',
 								},

@@ -51,6 +51,17 @@ export const articleOperations: INodeProperties[] = [
 						method: 'POST',
 						url: '=/article/id/{{$parameter["articleId"]}}/createDatasheetPdf',
 						encoding: 'arraybuffer',
+						returnFullResponse: true,
+					},
+					output: {
+						postReceive: [
+							{
+								type: 'binaryData' as const,
+								properties: {
+									destinationProperty: 'data',
+								},
+							},
+						],
 					},
 				},
 			},
@@ -64,6 +75,17 @@ export const articleOperations: INodeProperties[] = [
 						method: 'POST',
 						url: '=/article/id/{{$parameter["articleId"]}}/createLabelPdf',
 						encoding: 'arraybuffer',
+						returnFullResponse: true,
+					},
+					output: {
+						postReceive: [
+							{
+								type: 'binaryData' as const,
+								properties: {
+									destinationProperty: 'data',
+								},
+							},
+						],
 					},
 				},
 			},
@@ -99,6 +121,17 @@ export const articleOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/article/id/{{$parameter["articleId"]}}/downloadArticleImage',
 						encoding: 'arraybuffer',
+						returnFullResponse: true,
+					},
+					output: {
+						postReceive: [
+							{
+								type: 'binaryData' as const,
+								properties: {
+									destinationProperty: 'data',
+								},
+							},
+						],
 					},
 				},
 			},
@@ -112,6 +145,17 @@ export const articleOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/article/id/{{$parameter["articleId"]}}/downloadMainArticleImage',
 						encoding: 'arraybuffer',
+						returnFullResponse: true,
+					},
+					output: {
+						postReceive: [
+							{
+								type: 'binaryData' as const,
+								properties: {
+									destinationProperty: 'data',
+								},
+							},
+						],
 					},
 				},
 			},
