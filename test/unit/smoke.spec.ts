@@ -54,23 +54,28 @@ describe('SharedFields', () => {
 		const operatorField = filterValues.find((v) => v.name === 'operator');
 		expect(operatorField).toBeDefined();
 		const opValues = operatorField!.options!.map((o) => o.value);
+		// SharedFields stores operator values WITHOUT the dash prefix (e.g. 'eq', not '-eq').
+		// buildFilterParams in GenericFunctions strips a leading dash if present, so both
+		// forms are accepted at runtime. The canonical stored form is the bare suffix.
+		expect(opValues).not.toContain('gte');
+		expect(opValues).not.toContain('lte');
 		expect(opValues).not.toContain('-gte');
 		expect(opValues).not.toContain('-lte');
-		// Must include the 13 valid suffixes
-		expect(opValues).toContain('-eq');
-		expect(opValues).toContain('-ne');
-		expect(opValues).toContain('-ge');
-		expect(opValues).toContain('-le');
-		expect(opValues).toContain('-in');
-		expect(opValues).toContain('-notin');
-		expect(opValues).toContain('-like');
-		expect(opValues).toContain('-notlike');
-		expect(opValues).toContain('-ilike');
-		expect(opValues).toContain('-notilike');
-		expect(opValues).toContain('-null');
-		expect(opValues).toContain('-notnull');
-		expect(opValues).toContain('-lt');
-		expect(opValues).toContain('-gt');
+		// Must include the 14 valid suffixes (bare form, no leading dash)
+		expect(opValues).toContain('eq');
+		expect(opValues).toContain('ne');
+		expect(opValues).toContain('ge');
+		expect(opValues).toContain('le');
+		expect(opValues).toContain('in');
+		expect(opValues).toContain('notin');
+		expect(opValues).toContain('like');
+		expect(opValues).toContain('notlike');
+		expect(opValues).toContain('ilike');
+		expect(opValues).toContain('notilike');
+		expect(opValues).toContain('null');
+		expect(opValues).toContain('notnull');
+		expect(opValues).toContain('lt');
+		expect(opValues).toContain('gt');
 	});
 
 	it('additionalFields is a collection INodeProperties', () => {
