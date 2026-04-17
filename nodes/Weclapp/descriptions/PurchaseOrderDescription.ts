@@ -442,16 +442,16 @@ export const purchaseOrderFields: INodeProperties[] = [
 		},
 	},
 	{
-		displayName: 'Filter by Recipient ID',
-		name: 'recipientIdFilter',
+		displayName: 'Filter by Supplier ID',
+		name: 'supplierIdFilter',
 		type: 'string',
 		default: '',
-		description: 'Filter by recipient (supplier) party ID (recipientId-eq)',
+		description: 'Filter by supplier party ID (supplierId-eq)',
 		displayOptions: { show: { resource: ['purchaseOrder'], operation: ['list'] } },
 		routing: {
 			request: {
 				qs: {
-					'recipientId-eq': '={{$value || undefined}}',
+					'supplierId-eq': '={{$value || undefined}}',
 				},
 			},
 		},
@@ -465,14 +465,11 @@ export const purchaseOrderFields: INodeProperties[] = [
 		options: [
 			{ name: '(All)', value: '' },
 			{ name: 'Cancelled', value: 'CANCELLED' },
+			{ name: 'Closed', value: 'CLOSED' },
 			{ name: 'Confirmed', value: 'CONFIRMED' },
-			{ name: 'In Process', value: 'IN_PROCESS' },
-			{ name: 'New', value: 'NEW' },
-			{ name: 'Order Confirmation Printed', value: 'ORDER_CONFIRMATION_PRINTED' },
+			{ name: 'Order Documents Printed', value: 'ORDER_DOCUMENTS_PRINTED' },
 			{ name: 'Order Entry Completed', value: 'ORDER_ENTRY_COMPLETED' },
 			{ name: 'Order Entry In Progress', value: 'ORDER_ENTRY_IN_PROGRESS' },
-			{ name: 'Partly Received', value: 'PARTLY_RECEIVED' },
-			{ name: 'Received', value: 'RECEIVED' },
 		],
 		displayOptions: { show: { resource: ['purchaseOrder'], operation: ['list'] } },
 		routing: {
@@ -506,7 +503,7 @@ export const purchaseOrderFields: INodeProperties[] = [
 							status: '={{$responseItem.status}}',
 							orderDate: '={{$responseItem.orderDate}}',
 							grossAmount: '={{$responseItem.grossAmount}}',
-							recipientId: '={{$responseItem.recipientId}}',
+							supplierId: '={{$responseItem.supplierId}}',
 							version: '={{$responseItem.version}}',
 						},
 					},
@@ -529,9 +526,9 @@ export const purchaseOrderFields: INodeProperties[] = [
 		required: true,
 		default: '{}',
 		description:
-			'JSON body for the new purchase order. Include at minimum recipientId and purchase order items.',
+			'JSON body for the new purchase order. Include at minimum supplierId and purchase order items.',
 		placeholder:
-			'{"recipientId": "123", "purchaseOrderItems": [{"articleId": "456", "quantity": "10"}]}',
+			'{"supplierId": "123", "purchaseOrderItems": [{"articleId": "456", "quantity": "10"}]}',
 		displayOptions: { show: { resource: ['purchaseOrder'], operation: ['create'] } },
 		routing: {
 			request: {
