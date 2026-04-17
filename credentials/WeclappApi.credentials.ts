@@ -17,7 +17,10 @@ export class WeclappApi implements ICredentialType {
 
 	displayName = 'Weclapp API';
 
-	icon: Icon = 'file:weclapp.svg';
+	icon: Icon = {
+		light: 'file:weclapp.light.svg',
+		dark: 'file:weclapp.dark.svg',
+	};
 
 	documentationUrl = 'https://www.weclapp.com/api-docs/';
 

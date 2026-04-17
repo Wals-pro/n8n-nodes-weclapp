@@ -40,7 +40,10 @@ export class WeclappTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'weclapp Trigger',
 		name: 'weclappTrigger',
-		icon: 'file:weclapp.svg',
+		icon: {
+			light: 'file:weclapp.light.svg',
+			dark: 'file:weclapp.dark.svg',
+		},
 		group: ['trigger'],
 		version: 1,
 		description:
