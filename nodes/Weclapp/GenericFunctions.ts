@@ -61,15 +61,52 @@ const SIMPLIFY_FIELDS: Record<string, string[]> = {
 };
 
 // ---------------------------------------------------------------------------
+// URL resolution helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve a weclapp endpoint to an absolute URL.
+ *
+ * Declarative routing (n8n `routing` property) gets `baseURL` injected
+ * automatically from `requestDefaults`. Programmatic handlers
+ * (`customOperations`) bypass `requestDefaults` entirely, so they must
+ * resolve the absolute URL themselves.
+ *
+ * Rules:
+ *  - Absolute URL (`http://` or `https://`) → returned unchanged.
+ *  - Relative path (with or without leading `/`) → `baseUrl` from
+ *    credentials is prepended after stripping any trailing slashes.
+ *
+ * @param ctx       The calling function's `this`.
+ * @param endpoint  Relative path (e.g. `/salesOrder`) or absolute URL.
+ * @returns Absolute URL string ready for `httpRequestWithAuthentication`.
+ */
+export async function resolveWeclappUrl(
+	ctx: WeclappFunctions,
+	endpoint: string,
+): Promise<string> {
+	if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+		return endpoint;
+	}
+
+	const creds = await ctx.getCredentials('weclappApi');
+	const baseUrl = String(creds.baseUrl).replace(/\/+$/, '');
+	const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+	return `${baseUrl}${path}`;
+}
+
+// ---------------------------------------------------------------------------
 // Core request helper
 // ---------------------------------------------------------------------------
 
 /**
  * Make an authenticated request to the weclapp API.
  *
- * The `endpoint` is a relative path (e.g. `/article`). The node's
- * `requestDefaults.baseURL` supplies the tenant base, so we never
- * hard-code tenant URLs here.
+ * `endpoint` may be a relative path (e.g. `/salesOrder`) or an absolute URL.
+ * Relative paths are resolved against the `baseUrl` stored in the node's
+ * `weclappApi` credentials at call time. This ensures programmatic handlers
+ * (customOperations) work correctly — unlike declarative routing they do NOT
+ * receive `requestDefaults.baseURL` injection from n8n.
  *
  * Errors are parsed via `parseApiProblem` and re-thrown as `NodeApiError`
  * so n8n shows a structured, human-readable message.
@@ -81,10 +118,11 @@ export async function weclappApiRequest(
 	body?: IDataObject,
 	qs?: IDataObject,
 ): Promise<IDataObject> {
+	const url = await resolveWeclappUrl(this, endpoint);
 	try {
 		const response = await this.helpers.httpRequestWithAuthentication.call(this, 'weclappApi', {
 			method,
-			url: endpoint,
+			url,
 			body,
 			qs,
 			json: true,
@@ -353,9 +391,10 @@ export async function handleBinaryDownload(
 	body?: IDataObject,
 	qs?: IDataObject,
 ): Promise<INodeExecutionData> {
+	const url = await resolveWeclappUrl(this, endpoint);
 	const response = await this.helpers.httpRequestWithAuthentication.call(this, 'weclappApi', {
 		method,
-		url: endpoint,
+		url,
 		body,
 		qs,
 		encoding: 'arraybuffer',
