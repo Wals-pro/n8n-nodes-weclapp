@@ -63,7 +63,6 @@ export const shipmentOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/shipment/id/{{$parameter["shipmentId"]}}/createReturnLabels',
-						body: {},
 					},
 					output: {
 						postReceive: [
@@ -86,7 +85,6 @@ export const shipmentOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/shipment/id/{{$parameter["shipmentId"]}}/createSalesInvoice',
-						body: {},
 					},
 					output: {
 						postReceive: [

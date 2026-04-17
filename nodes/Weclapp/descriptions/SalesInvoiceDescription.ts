@@ -234,7 +234,6 @@ export const salesInvoiceOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesInvoice/id/{{ $parameter.salesInvoiceId }}/recalculateCosts',
-						body: {},
 					},
 					output: {
 						postReceive: [
@@ -257,7 +256,6 @@ export const salesInvoiceOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesInvoice/id/{{ $parameter.salesInvoiceId }}/resetTaxes',
-						body: {},
 					},
 					output: {
 						postReceive: [
@@ -317,7 +315,6 @@ export const salesInvoiceOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesInvoice/id/{{ $parameter.salesInvoiceId }}/updatePrices',
-						body: {},
 					},
 					output: {
 						postReceive: [

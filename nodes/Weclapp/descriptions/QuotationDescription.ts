@@ -106,7 +106,6 @@ export const quotationOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/quotation/id/{{$parameter["quotationId"]}}/createNewVersion',
-						body: {},
 					},
 					output: {
 						postReceive: [
@@ -129,7 +128,6 @@ export const quotationOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/quotation/id/{{$parameter["quotationId"]}}/createPublicPageLink',
-						body: {},
 					},
 				},
 			},
@@ -211,7 +209,6 @@ export const quotationOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/quotation/id/{{$parameter["quotationId"]}}/disablePublicPageLink',
-						body: {},
 					},
 				},
 			},
@@ -352,7 +349,6 @@ export const quotationOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/quotation/id/{{$parameter["quotationId"]}}/recalculateCosts',
-						body: {},
 					},
 					output: {
 						postReceive: [
@@ -375,7 +371,6 @@ export const quotationOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/quotation/id/{{$parameter["quotationId"]}}/resetTaxes',
-						body: {},
 					},
 					output: {
 						postReceive: [
@@ -435,7 +430,6 @@ export const quotationOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/quotation/id/{{$parameter["quotationId"]}}/updatePrices',
-						body: {},
 					},
 					output: {
 						postReceive: [

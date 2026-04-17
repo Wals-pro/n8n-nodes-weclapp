@@ -36,7 +36,6 @@ export const purchaseInvoiceOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/purchaseInvoice/id/{{$parameter["purchaseInvoiceId"]}}/convertPurchaseInvoiceToCreditNote',
-						body: {},
 					},
 				},
 			},
@@ -141,7 +140,6 @@ export const purchaseInvoiceOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/purchaseInvoice/id/{{$parameter["purchaseInvoiceId"]}}/resetTaxes',
-						body: {},
 					},
 				},
 			},
@@ -154,7 +152,6 @@ export const purchaseInvoiceOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/purchaseInvoice/id/{{$parameter["purchaseInvoiceId"]}}/saveDuplicateInvoiceAsOriginal',
-						body: {},
 					},
 				},
 			},

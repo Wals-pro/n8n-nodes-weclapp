@@ -30,7 +30,6 @@ export const salesOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}/activateProjectView',
-						body: {},
 					},
 				},
 			},
@@ -55,7 +54,6 @@ export const salesOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}/cancelOrManuallyClose',
-						body: {},
 					},
 				},
 			},
@@ -80,7 +78,6 @@ export const salesOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}/createAdvancePaymentRequest',
-						body: {},
 					},
 				},
 			},
@@ -117,7 +114,6 @@ export const salesOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}/createPartPaymentInvoice',
-						body: {},
 					},
 				},
 			},
@@ -130,7 +126,6 @@ export const salesOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}/createPerformanceRecord',
-						body: {},
 					},
 				},
 			},
@@ -143,7 +138,6 @@ export const salesOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}/createPrepaymentFinalInvoice',
-						body: {},
 					},
 				},
 			},
@@ -192,7 +186,6 @@ export const salesOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}/createReturnLabels',
-						body: {},
 					},
 				},
 			},
@@ -229,7 +222,6 @@ export const salesOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}/createShippingLabels',
-						body: {},
 					},
 				},
 			},
@@ -321,7 +313,6 @@ export const salesOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}/manuallyClose',
-						body: {},
 					},
 				},
 			},
@@ -403,7 +394,6 @@ export const salesOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}/recalculateCosts',
-						body: {},
 					},
 				},
 			},
@@ -416,7 +406,6 @@ export const salesOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}/resetTaxes',
-						body: {},
 					},
 				},
 			},
@@ -441,7 +430,6 @@ export const salesOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}/shipOrderForExternalFulfillment',
-						body: {},
 					},
 				},
 			},
@@ -454,7 +442,6 @@ export const salesOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}/toggleProjectTeam',
-						body: {},
 					},
 				},
 			},
@@ -467,7 +454,6 @@ export const salesOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}/toggleServicesFinished',
-						body: {},
 					},
 				},
 			},
@@ -495,7 +481,6 @@ export const salesOrderOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}/updatePrices',
-						body: {},
 					},
 				},
 			},
