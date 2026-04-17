@@ -2,6 +2,24 @@
 
 All notable changes to `n8n-nodes-weclapp` are documented here.
 
+## [Unreleased] — v0.2.0 backlog
+
+QA sprint (2026-04-17): 0/24 workers produced reports. All ops BLOCKED at infrastructure level.
+See `qa-reports/SUMMARY.md` for full gap analysis.
+
+### Confirmed working (static analysis + build — no live test coverage yet)
+- All 17 resource families present and build cleanly: article, bank, customApiCall, document, party, productionOrder, purchaseInvoice, purchaseOrder, quotation, salesInvoice, salesOrder, shipment, tag/unit/user, ticket/comment, warehouse, webhook
+- WeclappTrigger node builds and wires subscribe/unsubscribe hooks
+- 14 load-options locators defined (UI-level verification pending)
+- Credential connectivity test against `/currency` endpoint
+
+### Known broken / missing (must fix before v0.2.0 release)
+- **#30** Composite ops non-functional: `updatePrices`, `applyPayment`, `document.upload`, `customApiCall.call` — execute() removed in PR #28
+- **#29** `limit`/`returnAll` fields have no routing — list ops always return up to pageSize=1000, pagination loop absent
+- **#31** 5 unit tests fail on main: apply-payment mock setup, smoke operator prefix mismatch (`eq` vs `-eq`)
+- Binary download paths (PDF, document blobs) have zero end-to-end test coverage
+- WeclappTrigger lifecycle untested against live weclapp API
+
 ## 0.1.0 — 2026-04-17
 
 ### Infrastructure & Core
