@@ -4,14 +4,13 @@ import { additionalFields, filtersCollection, returnAllOrLimit, simplifyField } 
 
 // ─── Shared constants ─────────────────────────────────────────────────────────
 
-const PARTY_TYPE_OPTIONS: INodePropertyOptions[] = [
-	{ name: 'Customer', value: 'CUSTOMER' },
-	{ name: 'Prospect', value: 'PROSPECT' },
-	{ name: 'Supplier', value: 'SUPPLIER' },
+export const PARTY_TYPE_OPTIONS: INodePropertyOptions[] = [
+	{ name: 'Organization', value: 'ORGANIZATION' },
+	{ name: 'Person', value: 'PERSON' },
 ];
 
 /** Body fields shared between create and update — same shape, same API fields. */
-const PARTY_BODY_OPTIONS: INodeProperties[] = [
+export const PARTY_BODY_OPTIONS: INodeProperties[] = [
 	{
 		displayName: 'Active',
 		name: 'active',
@@ -22,11 +21,11 @@ const PARTY_BODY_OPTIONS: INodeProperties[] = [
 	},
 	{
 		displayName: 'Company Name',
-		name: 'name',
+		name: 'company',
 		type: 'string',
 		default: '',
 		description: 'The company or organisation name of the party',
-		routing: { send: { type: 'body', property: 'name' } },
+		routing: { send: { type: 'body', property: 'company' } },
 	},
 	{
 		displayName: 'Customer Number',
@@ -73,10 +72,34 @@ const PARTY_BODY_OPTIONS: INodeProperties[] = [
 		displayName: 'Party Type',
 		name: 'partyType',
 		type: 'options',
-		default: 'CUSTOMER',
+		default: 'ORGANIZATION',
 		description: 'The type classification of this party',
 		options: PARTY_TYPE_OPTIONS,
 		routing: { send: { type: 'body', property: 'partyType' } },
+	},
+	{
+		displayName: 'Customer',
+		name: 'customer',
+		type: 'boolean',
+		default: false,
+		description: 'Whether this party acts as a customer',
+		routing: { send: { type: 'body', property: 'customer' } },
+	},
+	{
+		displayName: 'Prospect',
+		name: 'prospect',
+		type: 'boolean',
+		default: false,
+		description: 'Whether this party is a prospect',
+		routing: { send: { type: 'body', property: 'prospect' } },
+	},
+	{
+		displayName: 'Supplier',
+		name: 'supplier',
+		type: 'boolean',
+		default: false,
+		description: 'Whether this party acts as a supplier',
+		routing: { send: { type: 'body', property: 'supplier' } },
 	},
 	{
 		displayName: 'Supplier Number',
@@ -260,19 +283,9 @@ const listFilters: INodeProperties = {
 const listSimplify: INodeProperties = {
 	...simplifyField,
 	displayOptions: { show: { resource: ['party'], operation: ['list', 'get'] } },
-	routing: {
-		output: {
-			postReceive: [
-				{
-					type: 'filter',
-					enabled: '={{ $parameter["simplify"] }}',
-					properties: {
-						pass: '={{ ["id","partyNumber","name","firstName","lastName","partyType","email","active","version"].includes($key) }}',
-					},
-				},
-			],
-		},
-	},
+	description: 'Reserved for future use — currently returns full entity shape.',
+	// NOTE: The broken type:'filter' postReceive was removed in #61. A correct
+	// type:'set' property-projection implementation is tracked for v0.3.0.
 };
 
 const getAdditionalFields: INodeProperties = {
