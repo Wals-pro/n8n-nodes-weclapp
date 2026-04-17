@@ -1,0 +1,568 @@
+{
+  "id": "A0wcC9zLFjVxbiT2",
+  "name": "QA2-R04-LIVE-weclapp-Dispo-Tool",
+  "active": false,
+  "nodes": [
+    {
+      "id": "wh-dispo-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        240
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "qa2-r04-dispo",
+        "responseMode": "onReceived",
+        "responseData": "noData"
+      }
+    },
+    {
+      "id": "const-dispo-1",
+      "name": "Constants",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        80,
+        240
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "weclappTenant",
+              "value": "testhandel",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "disableAutomaticDispoValueCalculation",
+              "value": "698104",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "pageSize",
+              "value": 1000,
+              "type": "number"
+            },
+            {
+              "id": "a4",
+              "name": "maxPages",
+              "value": "1000",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "batchSize",
+              "value": "1",
+              "type": "string"
+            },
+            {
+              "id": "a6",
+              "name": "batchInterval",
+              "value": "50",
+              "type": "string"
+            },
+            {
+              "id": "a7",
+              "name": "apiVersion",
+              "value": "v1",
+              "type": "string"
+            },
+            {
+              "id": "a8",
+              "name": "lookBackDays",
+              "value": 30,
+              "type": "number"
+            },
+            {
+              "id": "a9",
+              "name": "defaultMinimumStockQuantity",
+              "value": "0",
+              "type": "string"
+            },
+            {
+              "id": "a10",
+              "name": "internationalCategoryIds",
+              "value": "[\"39918\", \"120111\", \"39950\", \"39943\", \"39921\", \"39957\", \"120133\", \"39936\"]",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "so-list-1",
+      "name": "salesOrder list",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        320,
+        160
+      ],
+      "parameters": {
+        "resource": "salesOrder",
+        "operation": "list",
+        "returnAll": true,
+        "filters": {
+          "filter": [
+            {
+              "field": "status",
+              "operator": "in",
+              "value": "[\"ORDER_ENTRY_IN_PROGRESS\",\"ORDER_CONFIRMATION_PRINTED\",\"CLOSED\"]"
+            },
+            {
+              "field": "orderDate",
+              "operator": "ge",
+              "value": "={{ Date.now() - $('Constants').first().json.lookBackDays * 24 * 60 * 60 * 1000 }}"
+            },
+            {
+              "field": "orderItems.articleId",
+              "operator": "notnull",
+              "value": ""
+            }
+          ]
+        },
+        "additionalFields": {
+          "properties": "id,orderNumber,status,orderItems.articleId,orderItems.quantity"
+        }
+      },
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "testhandel"
+        }
+      }
+    },
+    {
+      "id": "art-list-1",
+      "name": "article list",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        320,
+        320
+      ],
+      "parameters": {
+        "resource": "article",
+        "operation": "list",
+        "returnAll": true,
+        "filters": {
+          "filter": [
+            {
+              "field": "articleType",
+              "operator": "eq",
+              "value": "STORABLE"
+            },
+            {
+              "field": "active",
+              "operator": "eq",
+              "value": "true"
+            },
+            {
+              "field": "={{ 'customAttribute' + $('Constants').first().json.disableAutomaticDispoValueCalculation }}",
+              "operator": "eq",
+              "value": "false"
+            }
+          ]
+        },
+        "additionalFields": {
+          "properties": "id,articleNumber,minimumStockQuantity,articleCategoryId",
+          "serializeNulls": true
+        }
+      },
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "testhandel"
+        }
+      }
+    },
+    {
+      "id": "code-agg-1",
+      "name": "Code aggregate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        160
+      ],
+      "parameters": {
+        "jsCode": "// Aggregate quantities by articleId across all incoming items.\nconst all = $input.all();\nconst sums = new Map();\n\nfor (const [index, item] of all.entries()) {\n  const list = item.json.orderitems ?? item.json.orderItems ?? [];\n  if (!Array.isArray(list)) continue;\n\n  for (const it of list) {\n    if (!it) continue;\n    const id = it.articleId ?? it.articleID ?? it.articleid;\n    if (id == null) continue;\n    const rawQty = it.quantity ?? it.qty ?? it.amount ?? 0;\n    const qty = typeof rawQty === 'string' ? parseFloat(rawQty) : Number(rawQty);\n    if (!Number.isFinite(qty)) continue;\n    const articleNumber = it.articleNumber ?? it.articlenumber ?? it.sku ?? null;\n    if (sums.has(id)) {\n      const existing = sums.get(id);\n      existing.quantity += qty;\n      if (!existing.articleNumber && articleNumber) existing.articleNumber = articleNumber;\n      existing.pairedItems.push({ item: index });\n    } else {\n      sums.set(id, { articleId: id, articleNumber, quantity: qty, pairedItems: [{ item: index }] });\n    }\n  }\n}\n\nconst out = Array.from(sums.values()).map(entry => ({\n  json: { id: entry.articleId, articleNumber: entry.articleNumber, minimumStockQuantity: entry.quantity },\n  pairedItem: entry.pairedItems,\n}));\nout.sort((a, b) => String(a.json.id).localeCompare(String(b.json.id)));\nreturn out;"
+      }
+    },
+    {
+      "id": "set-default-1",
+      "name": "Edit Fields set default",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        560,
+        320
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "minimumStockQuantity",
+              "value": "={{ $('Constants').first().json.defaultMinimumStockQuantity }}",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "merge-1",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        780,
+        240
+      ],
+      "parameters": {
+        "mode": "combine",
+        "fieldsToMatchString": "id",
+        "joinMode": "enrichInput2",
+        "options": {
+          "clashHandling": {
+            "values": {
+              "resolveClash": "preferInput1"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "code-minstock-1",
+      "name": "Code compute minimumStockQuantity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        240
+      ],
+      "parameters": {
+        "jsCode": "// Pre-compute the final minimumStockQuantity before PUT.\n// International category articles get 4x the calculated quantity.\nconst internationalCategoryIds = JSON.parse($('Constants').first().json.internationalCategoryIds);\n\nreturn $input.all().map((item, index) => {\n  const articleCategoryId = String(item.json.articleCategoryId ?? '');\n  const baseQty = Number(item.json.minimumStockQuantity ?? 0);\n  const isInternational = internationalCategoryIds.includes(articleCategoryId);\n  const computedMinStock = isInternational ? baseQty * 4 : baseQty;\n  return {\n    json: { ...item.json, computedMinStock },\n    pairedItem: { item: index },\n  };\n});"
+      }
+    },
+    {
+      "id": "art-upd-1",
+      "name": "article update minimumStockQuantity",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        1220,
+        240
+      ],
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "call",
+        "method": "PUT",
+        "entityPath": "article",
+        "entityId": "={{ $json.id }}",
+        "queryParameters": {
+          "parameter": [
+            {
+              "key": "ignoreMissingProperties",
+              "value": "true"
+            }
+          ]
+        },
+        "requestBody": "={{ JSON.stringify({ minimumStockQuantity: $json.computedMinStock }) }}"
+      },
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "wh-mrp-1",
+      "name": "Webhook MRP",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        700
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "qa2-r04-mrp",
+        "responseMode": "onReceived",
+        "responseData": "noData"
+      }
+    },
+    {
+      "id": "const-mrp-1",
+      "name": "Constants MRP",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        80,
+        700
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "weclappTenant",
+              "value": "testhandel",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "attributeIdDisableAutoprocessing",
+              "value": "126332",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "pageSize",
+              "value": 1000,
+              "type": "number"
+            },
+            {
+              "id": "c4",
+              "name": "maxPages",
+              "value": "1000",
+              "type": "string"
+            },
+            {
+              "id": "c5",
+              "name": "batchSize",
+              "value": "1",
+              "type": "string"
+            },
+            {
+              "id": "c6",
+              "name": "batchInterval",
+              "value": "50",
+              "type": "string"
+            },
+            {
+              "id": "c7",
+              "name": "apiVersion",
+              "value": "v1",
+              "type": "string"
+            },
+            {
+              "id": "c8",
+              "name": "lookBackDays",
+              "value": 30,
+              "type": "number"
+            },
+            {
+              "id": "c9",
+              "name": "defaultMinimumStockQuantity",
+              "value": "0",
+              "type": "string"
+            },
+            {
+              "id": "c10",
+              "name": "dispoWarehouseIds",
+              "value": "[\"4261\"]",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "del-req-1",
+      "name": "deleteAllRequisitions",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        320,
+        700
+      ],
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "call",
+        "method": "POST",
+        "entityPath": "purchaseRequisition",
+        "entityId": "",
+        "action": "deleteAllRequisitions",
+        "requestBody": ""
+      },
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "start-mrp-1",
+      "name": "startMaterialPlanningRun",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        560,
+        700
+      ],
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "call",
+        "method": "POST",
+        "entityPath": "purchaseRequisition",
+        "entityId": "",
+        "action": "startMaterialPlanningRun",
+        "requestBody": "={{ JSON.stringify({ warehouseIds: JSON.parse($('Constants MRP').first().json.dispoWarehouseIds) }) }}"
+      },
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Constants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Constants": {
+      "main": [
+        [
+          {
+            "node": "salesOrder list",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "article list",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "salesOrder list": {
+      "main": [
+        [
+          {
+            "node": "Code aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "article list": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields set default",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code aggregate": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields set default": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code compute minimumStockQuantity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code compute minimumStockQuantity": {
+      "main": [
+        [
+          {
+            "node": "article update minimumStockQuantity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook MRP": {
+      "main": [
+        [
+          {
+            "node": "Constants MRP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Constants MRP": {
+      "main": [
+        [
+          {
+            "node": "deleteAllRequisitions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "deleteAllRequisitions": {
+      "main": [
+        [
+          {
+            "node": "startMaterialPlanningRun",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
