@@ -30,6 +30,8 @@ interface FakeContextOptions {
 	httpError?: Error;
 }
 
+const FAKE_BASE_URL = 'https://testhandel.weclapp.com/webapp/api/v2';
+
 function makeFakeContext(opts: FakeContextOptions = {}): IExecuteFunctions {
 	const {
 		params = {},
@@ -55,6 +57,7 @@ function makeFakeContext(opts: FakeContextOptions = {}): IExecuteFunctions {
 			id: 'test',
 			parameters: {},
 		}),
+		getCredentials: vi.fn().mockResolvedValue({ baseUrl: FAKE_BASE_URL }),
 		helpers: {
 			assertBinaryData: vi.fn().mockReturnValue(binaryData),
 			getBinaryDataBuffer: vi.fn().mockResolvedValue(binaryBuffer),
@@ -132,7 +135,7 @@ describe('executeDocumentUpload', () => {
 
 		const [credType, opts] = httpMock.mock.calls[0] as [string, { url: string; qs: Record<string, string>; method: string }];
 		expect(credType).toBe('weclappApi');
-		expect(opts.url).toBe('/document/upload');
+		expect(opts.url).toBe(`${FAKE_BASE_URL}/document/upload`);
 		expect(opts.method).toBe('POST');
 		expect(opts.qs).toMatchObject({
 			entityName: 'salesOrder',
@@ -255,7 +258,7 @@ describe('executeDocumentUploadNewVersion', () => {
 		expect(httpMock).toHaveBeenCalledOnce();
 
 		const [, opts] = httpMock.mock.calls[0] as [string, { url: string; qs: Record<string, string>; method: string }];
-		expect(opts.url).toBe('/document/id/doc-123/upload');
+		expect(opts.url).toBe(`${FAKE_BASE_URL}/document/id/doc-123/upload`);
 		expect(opts.method).toBe('POST');
 		expect(opts.qs).toMatchObject({ comment: 'Fixed version' });
 
