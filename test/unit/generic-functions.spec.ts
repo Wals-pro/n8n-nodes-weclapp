@@ -4,7 +4,9 @@ import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 import {
 	buildFilterParams,
 	parseApiProblem,
+	resolveWeclappUrl,
 	simplifyEntity,
+	weclappApiRequest,
 	weclappApiRequestAllItems,
 	type WeclappFilterItem,
 } from '../../nodes/Weclapp/GenericFunctions';
@@ -23,8 +25,10 @@ const FAKE_NODE = {
 	parameters: {},
 };
 
+const FAKE_BASE_URL = 'https://testhandel.weclapp.com/webapp/api/v2';
+
 /** Build a WeclappFunctions-like context with a mock HTTP helper. */
-function makeContext(responses: Record<string, unknown>[]) {
+function makeContext(responses: Record<string, unknown>[], baseUrl = FAKE_BASE_URL) {
 	let callIndex = 0;
 
 	const mockRequest = vi.fn(async () => {
@@ -35,6 +39,7 @@ function makeContext(responses: Record<string, unknown>[]) {
 
 	return {
 		getNode: () => FAKE_NODE,
+		getCredentials: vi.fn().mockResolvedValue({ baseUrl }),
 		helpers: {
 			httpRequestWithAuthentication: {
 				call: mockRequest,
@@ -43,6 +48,79 @@ function makeContext(responses: Record<string, unknown>[]) {
 		mockRequest,
 	};
 }
+
+// ---------------------------------------------------------------------------
+// resolveWeclappUrl
+// ---------------------------------------------------------------------------
+
+describe('resolveWeclappUrl', () => {
+	it('prepends baseUrl to a relative path with leading slash', async () => {
+		const ctx = makeContext([]);
+		const url = await resolveWeclappUrl(ctx as never, '/salesOrder');
+		expect(url).toBe('https://testhandel.weclapp.com/webapp/api/v2/salesOrder');
+	});
+
+	it('prepends baseUrl and adds leading slash to a path without one', async () => {
+		const ctx = makeContext([]);
+		const url = await resolveWeclappUrl(ctx as never, 'salesOrder');
+		expect(url).toBe('https://testhandel.weclapp.com/webapp/api/v2/salesOrder');
+	});
+
+	it('returns an absolute https:// URL unchanged', async () => {
+		const ctx = makeContext([]);
+		const absolute = 'https://other.weclapp.com/webapp/api/v2/currency';
+		const url = await resolveWeclappUrl(ctx as never, absolute);
+		expect(url).toBe(absolute);
+		// Should not have called getCredentials for an absolute URL.
+		expect(ctx.getCredentials).not.toHaveBeenCalled();
+	});
+
+	it('returns an absolute http:// URL unchanged', async () => {
+		const ctx = makeContext([]);
+		const absolute = 'http://localhost:8080/webapp/api/v2/currency';
+		const url = await resolveWeclappUrl(ctx as never, absolute);
+		expect(url).toBe(absolute);
+	});
+
+	it('strips trailing slashes from baseUrl before prepending', async () => {
+		const ctx = makeContext([], 'https://testhandel.weclapp.com/webapp/api/v2///');
+		const url = await resolveWeclappUrl(ctx as never, '/currency');
+		expect(url).toBe('https://testhandel.weclapp.com/webapp/api/v2/currency');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// weclappApiRequest — URL resolution
+// ---------------------------------------------------------------------------
+
+describe('weclappApiRequest — baseURL resolution', () => {
+	it('passes absolute URL to httpRequestWithAuthentication for a relative path with slash', async () => {
+		const ctx = makeContext([{ id: '1' }]);
+		await weclappApiRequest.call(ctx as never, 'GET', '/salesOrder');
+
+		const callArgs = ctx.mockRequest.mock.calls[0];
+		// callArgs[2] is the options object
+		const opts = callArgs[2] as { url: string };
+		expect(opts.url).toBe('https://testhandel.weclapp.com/webapp/api/v2/salesOrder');
+	});
+
+	it('passes absolute URL when endpoint has no leading slash', async () => {
+		const ctx = makeContext([{ id: '1' }]);
+		await weclappApiRequest.call(ctx as never, 'GET', 'salesOrder');
+
+		const opts = ctx.mockRequest.mock.calls[0][2] as { url: string };
+		expect(opts.url).toBe('https://testhandel.weclapp.com/webapp/api/v2/salesOrder');
+	});
+
+	it('passes absolute URL through unchanged when already absolute', async () => {
+		const absolute = 'https://other.weclapp.com/webapp/api/v2/currency';
+		const ctx = makeContext([{ result: [] }]);
+		await weclappApiRequest.call(ctx as never, 'GET', absolute);
+
+		const opts = ctx.mockRequest.mock.calls[0][2] as { url: string };
+		expect(opts.url).toBe(absolute);
+	});
+});
 
 // ---------------------------------------------------------------------------
 // buildFilterParams

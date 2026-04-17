@@ -628,24 +628,12 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 				name: 'targetStoragePlaceId',
 				type: 'string',
 				default: '',
-				description: 'Storage place (bin/location) to receive goods into',
+				description:
+					'Storage place (bin/location) to receive goods into. The warehouse is inferred from the storage place.',
 				routing: {
 					send: {
 						type: 'body',
 						property: 'targetStoragePlaceId',
-					},
-				},
-			},
-			{
-				displayName: 'Warehouse ID',
-				name: 'warehouseId',
-				type: 'string',
-				default: '',
-				description: 'Warehouse to receive goods into',
-				routing: {
-					send: {
-						type: 'body',
-						property: 'warehouseId',
 					},
 				},
 			},
@@ -737,24 +725,12 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 				name: 'sourceStoragePlaceId',
 				type: 'string',
 				default: '',
-				description: 'Storage place (bin/location) to issue goods from',
+				description:
+					'Storage place (bin/location) to issue goods from. The warehouse is inferred from the storage place.',
 				routing: {
 					send: {
 						type: 'body',
 						property: 'sourceStoragePlaceId',
-					},
-				},
-			},
-			{
-				displayName: 'Warehouse ID',
-				name: 'warehouseId',
-				type: 'string',
-				default: '',
-				description: 'Warehouse to issue goods from',
-				routing: {
-					send: {
-						type: 'body',
-						property: 'warehouseId',
 					},
 				},
 			},
@@ -854,8 +830,9 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 		name: 'filterMovementType',
 		type: 'string',
 		default: '',
-		description: 'Filter by movement type (e.g. INCOMING, OUTGOING)',
-		placeholder: 'e.g. INCOMING',
+		description:
+			'Filter by stock movement type. Common values: IN, OUT, IN_PURCHASE_ORDER, OUT_PRODUCTION_ORDER, IN_TRANSFER, OUT_TRANSFER.',
+		placeholder: 'e.g. IN',
 		displayOptions: {
 			show: {
 				resource: ['warehouseStockMovement'],
@@ -865,7 +842,7 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 		routing: {
 			send: {
 				type: 'query',
-				property: 'movementType-eq',
+				property: 'stockMovementType-eq',
 			},
 		},
 	},
