@@ -116,7 +116,6 @@ const partyOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/party/id/{{$parameter["partyId"]}}/createPublicPage',
-						body: {},
 					},
 				},
 			},
