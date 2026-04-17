@@ -2,6 +2,49 @@
 
 All notable changes to `n8n-nodes-weclapp` are documented here.
 
+## [0.2.0-rc1] - 2026-04-17
+
+### Summary
+
+Release candidate combining all QA sprint fixes (47 PRs merged) plus post-QA descriptor
+corrections confirmed against testhandel. This RC is deployed to local Docker n8n for
+final validation before v0.2.0 final.
+
+### Fixed in RC1 (PRs #70–#114, on top of v0.2.0 base)
+
+- **filter routing** (#57/#77): `filtersCollection` wired via preSend hook; all list filters now reach the weclapp API correctly
+- **binary download wiring** (#65/#74): `prepareBinaryData` postReceive + `encoding: arraybuffer` + `returnFullResponse: true` on all download operations; Buffer no longer leaks into json output
+- **body:{} action handling** (#60/#75): removed empty `body: {}` from all non-body POST actions (31 operations across 6 resources) — weclapp was returning 400
+- **party descriptor** (#61/#70): correct `partyType` enum (ORGANIZATION/PERSON), `name`→`company` body field, `simplify` postReceive fixed
+- **ticket descriptor** (#62/#72): `title`→`subject`, `status`→`ticketStatusId` FK; comment `entityName` body field corrected
+- **tag/unit/customAttributeDefinition** (#63/#73): `name` param conflict resolved; `tagName`/`unitName` body mapping; `cad.create` field names corrected
+- **status enums** (#64/#76): salesInvoice status set fully replaced; purchaseOrder invalid values removed; `recipientId`→`supplierId`
+- **filter + pagination routing** (#29 partial/#77): `limit` routes as `pageSize`; `paginationConfig` exported
+- **composite dispatcher** (#30/#79): `customOperations` programmatic dispatcher routes article.updatePrices, purchaseInvoice.applyPayment, document.upload/uploadNewVersion, customApiCall
+- **WeclappTrigger** (#59/#78): corrected POST /webhook schema (atCreate/atUpdate/atDelete + entityName + requestMethod)
+- **displayOptions regression** (#58/#90): removed `displayOptions` from fixedCollection children in TagUnitUserDescription — fixes "Max iterations reached" crash on workflow activation
+- **baseURL regression** (#91/#101): `resolveWeclappUrl` centralizes credential baseURL resolution; fixes Invalid URL in customOperations (document upload)
+- **warehouse descriptor** (#38/#114): removed redundant `warehouseId` body field; fixed filter property `movementType-eq`→`stockMovementType-eq`; preSend hooks strip empty filter values; removed `displayOptions` from warehouse collection child (same crash as #58)
+- **tag/unit/user update** (#113): added `?ignoreMissingProperties=true` to PUT routes for tag, unit, user — partial updates previously returned 400
+- **test suite** (#31/#71): all pre-existing test failures fixed; 472 tests pass
+
+### Known open issues (deferred to v0.2.0 final)
+
+- **#100**: F4 regression — salesInvoice v2 re-QA found a routing edge case (see qa2/u05-sales-invoice report)
+- **#106**: WeclappTrigger webhook simplification — atCreate/atUpdate/atDelete can be simplified to a single boolean flag
+- **#108**: article PDF operations not yet covered by QA
+- **#109**: purchaseInvoice.applyPayment has partial dispatch gap (no test for payment body shape)
+- **#110/#111**: empty date fields on some resources send `null` instead of omitting
+- **#112**: productionOrder json output has cosmetic buffer leak on PDF download (separate from binary data which is correct)
+- **customApiCall** (BUG-v02-U17-001): `customOperations` dispatcher works but `customApiCall` still does not surface output items in the n8n canvas — deferred investigation
+
+### QA Verification (v0.2.0-rc1 sprint)
+
+47 PRs merged from QA sprint workers (U01–U17, R01–R07, two synthesis rounds).
+All 472 unit + integration tests pass. No regressions introduced.
+
+---
+
 ## [0.2.0] - 2026-04-16
 
 ### Highlights
