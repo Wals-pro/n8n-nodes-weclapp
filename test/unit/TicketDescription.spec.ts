@@ -5,6 +5,8 @@ import {
 	simplifyComment,
 	TICKET_SIMPLE_FIELDS,
 	COMMENT_SIMPLE_FIELDS,
+	ticketFields,
+	commentFields,
 } from '../../nodes/Weclapp/descriptions/TicketDescription';
 
 describe('simplifyTicket', () => {
@@ -12,8 +14,8 @@ describe('simplifyTicket', () => {
 		const raw = {
 			id: 'T-1',
 			version: '3',
-			status: 'OPEN',
-			title: 'Bug report',
+			ticketStatusId: 'TS-1',
+			subject: 'Bug report',
 			assigneeId: 'U-42',
 			requesterId: 'U-7',
 			createdDate: 1700000000000,
@@ -24,8 +26,8 @@ describe('simplifyTicket', () => {
 		const result = simplifyTicket(raw);
 		expect(Object.keys(result)).toHaveLength(TICKET_SIMPLE_FIELDS.size);
 		expect(result.id).toBe('T-1');
-		expect(result.status).toBe('OPEN');
-		expect(result.title).toBe('Bug report');
+		expect(result.ticketStatusId).toBe('TS-1');
+		expect(result.subject).toBe('Bug report');
 		expect(result.assigneeId).toBe('U-42');
 		expect(result.requesterId).toBe('U-7');
 		expect(result.createdDate).toBe(1700000000000);
@@ -35,16 +37,89 @@ describe('simplifyTicket', () => {
 		expect(result.someInternalField).toBeUndefined();
 	});
 
-	it('handles missing optional fields gracefully', () => {
-		const raw = { id: 'T-2', status: 'CLOSED' };
+	it('uses subject (not title) — weclapp v2 field name', () => {
+		const raw = { id: 'T-2', subject: 'New subject', title: 'old title field' };
 		const result = simplifyTicket(raw);
-		expect(result.id).toBe('T-2');
-		expect(result.status).toBe('CLOSED');
+		expect(result.subject).toBe('New subject');
+		// title is NOT in the whitelist; it must be dropped
 		expect(result.title).toBeUndefined();
+	});
+
+	it('uses ticketStatusId (not status) — weclapp v2 FK field', () => {
+		const raw = { id: 'T-3', ticketStatusId: 'TS-99', status: 'OPEN' };
+		const result = simplifyTicket(raw);
+		expect(result.ticketStatusId).toBe('TS-99');
+		// status is NOT in the whitelist; it must be dropped
+		expect(result.status).toBeUndefined();
+	});
+
+	it('handles missing optional fields gracefully', () => {
+		const raw = { id: 'T-4', ticketStatusId: 'TS-2' };
+		const result = simplifyTicket(raw);
+		expect(result.id).toBe('T-4');
+		expect(result.ticketStatusId).toBe('TS-2');
+		expect(result.subject).toBeUndefined();
 	});
 
 	it('returns empty object for empty input', () => {
 		expect(simplifyTicket({})).toEqual({});
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Field descriptor tests
+// ---------------------------------------------------------------------------
+
+describe('ticketFields: create subject field', () => {
+	it('uses "subject" as the field name and body property (not "title")', () => {
+		const subjectField = ticketFields.find(
+			(f) => f.name === 'subject' && f.displayOptions?.show?.operation?.includes('create'),
+		);
+		expect(subjectField).toBeDefined();
+		expect(subjectField!.routing?.send?.property).toBe('subject');
+		expect(subjectField!.routing?.send?.type).toBe('body');
+	});
+
+	it('does not have a "title" create field', () => {
+		const titleField = ticketFields.find(
+			(f) => f.name === 'title' && f.displayOptions?.show?.operation?.includes('create'),
+		);
+		expect(titleField).toBeUndefined();
+	});
+});
+
+describe('ticketFields: ticketStatusId (no status enum)', () => {
+	it('has ticketStatusId field on create with body routing', () => {
+		const statusField = ticketFields.find(
+			(f) => f.name === 'ticketStatusId' && f.displayOptions?.show?.operation?.includes('create'),
+		);
+		expect(statusField).toBeDefined();
+		expect(statusField!.routing?.send?.property).toBe('ticketStatusId');
+		expect(statusField!.routing?.send?.type).toBe('body');
+	});
+
+	it('does not have a top-level "status" enum field', () => {
+		// There must be no root-level field named "status" (not inside a collection)
+		const statusField = ticketFields.find((f) => f.name === 'status');
+		expect(statusField).toBeUndefined();
+	});
+});
+
+describe('commentFields: entityName on create routed as body', () => {
+	it('create entityName field (entityNameCreate) uses type: body', () => {
+		const createEntityNameField = commentFields.find(
+			(f) => f.name === 'entityNameCreate',
+		);
+		expect(createEntityNameField).toBeDefined();
+		expect(createEntityNameField!.routing?.send?.type).toBe('body');
+		expect(createEntityNameField!.routing?.send?.property).toBe('entityName');
+	});
+
+	it('list entityName field (entityName) uses type: query', () => {
+		const listEntityNameField = commentFields.find((f) => f.name === 'entityName');
+		expect(listEntityNameField).toBeDefined();
+		expect(listEntityNameField!.routing?.send?.type).toBe('query');
+		expect(listEntityNameField!.routing?.send?.property).toBe('entityName');
 	});
 });
 

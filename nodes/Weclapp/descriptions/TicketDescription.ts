@@ -2,15 +2,6 @@ import type { INodeProperties } from 'n8n-workflow';
 
 import { filtersCollection, returnAllOrLimit, simplifyField } from '../SharedFields';
 
-// Shared status options used in both create and update fields.
-const TICKET_STATUS_OPTIONS = [
-	{ name: 'Closed', value: 'CLOSED' },
-	{ name: 'In Progress', value: 'IN_PROGRESS' },
-	{ name: 'Open', value: 'OPEN' },
-	{ name: 'Rejected', value: 'REJECTED' },
-	{ name: 'Waiting for Customer', value: 'WAITING_FOR_CUSTOMER' },
-];
-
 // ---------------------------------------------------------------------------
 // Ticket operations
 // ---------------------------------------------------------------------------
@@ -105,7 +96,8 @@ export const ticketOperations: INodeProperties[] = [
 			{
 				name: 'Mark Read',
 				value: 'markRead',
-				description: 'Mark a ticket as read',
+				description:
+					'Mark a ticket as read (may return 404 on some weclapp versions; check permissions)',
 				action: 'Mark a ticket as read',
 				routing: {
 					request: {
@@ -186,26 +178,27 @@ export const ticketFields: INodeProperties[] = [
 
 	// ── Create fields ──
 	{
-		displayName: 'Title',
-		name: 'title',
+		displayName: 'Subject',
+		name: 'subject',
 		type: 'string',
 		required: true,
 		default: '',
 		displayOptions: { show: { resource: ['ticket'], operation: ['create'] } },
-		description: 'The title of the ticket',
+		description: 'The subject of the ticket',
 		routing: {
-			send: { type: 'body', property: 'title' },
+			send: { type: 'body', property: 'subject' },
 		},
 	},
 	{
-		displayName: 'Status',
-		name: 'status',
+		displayName: 'Ticket Status Name or ID',
+		name: 'ticketStatusId',
 		type: 'options',
-		default: 'OPEN',
-		options: TICKET_STATUS_OPTIONS,
+		default: '',
+		typeOptions: { loadOptionsMethod: 'getTicketStatuses' },
 		displayOptions: { show: { resource: ['ticket'], operation: ['create'] } },
+		description: 'The status of the ticket (foreign key to ticketStatus entity). Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 		routing: {
-			send: { type: 'body', property: 'status' },
+			send: { type: 'body', property: 'ticketStatusId' },
 		},
 	},
 	{
@@ -296,13 +289,13 @@ export const ticketFields: INodeProperties[] = [
 				},
 			},
 			{
-				displayName: 'Status',
-				name: 'status',
-				type: 'options',
-				default: 'OPEN',
-				options: TICKET_STATUS_OPTIONS,
+				displayName: 'Subject',
+				name: 'subject',
+				type: 'string',
+				default: '',
+				description: 'The subject of the ticket',
 				routing: {
-					send: { type: 'body', property: 'status' },
+					send: { type: 'body', property: 'subject' },
 				},
 			},
 			{
@@ -315,12 +308,14 @@ export const ticketFields: INodeProperties[] = [
 				},
 			},
 			{
-				displayName: 'Title',
-				name: 'title',
-				type: 'string',
+				displayName: 'Ticket Status Name or ID',
+				name: 'ticketStatusId',
+				type: 'options',
 				default: '',
+				typeOptions: { loadOptionsMethod: 'getTicketStatuses' },
+				description: 'The status of the ticket (foreign key to ticketStatus entity). Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				routing: {
-					send: { type: 'body', property: 'title' },
+					send: { type: 'body', property: 'ticketStatusId' },
 				},
 			},
 			{
@@ -457,7 +452,7 @@ export const commentFields: INodeProperties[] = [
 		description: 'The ID of the comment',
 	},
 
-	// ── List/Create: entityName (required by weclapp API) ──
+	// ── List: entityName (query param — weclapp uses it as a filter) ──
 	{
 		displayName: 'Entity Name',
 		name: 'entityName',
@@ -467,7 +462,7 @@ export const commentFields: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['comment'],
-				operation: ['list', 'create'],
+				operation: ['list'],
 			},
 		},
 		description:
@@ -488,6 +483,42 @@ export const commentFields: INodeProperties[] = [
 		routing: {
 			send: {
 				type: 'query',
+				property: 'entityName',
+			},
+		},
+	},
+
+	// ── Create: entityName (body field — weclapp expects it in the request body) ──
+	{
+		displayName: 'Entity Name',
+		name: 'entityNameCreate',
+		type: 'options',
+		required: true,
+		default: 'ticket',
+		displayOptions: {
+			show: {
+				resource: ['comment'],
+				operation: ['create'],
+			},
+		},
+		description:
+			'The entity type this comment belongs to (e.g. ticket, salesOrder, purchaseOrder)',
+		options: [
+			{ name: 'Article', value: 'article' },
+			{ name: 'Document', value: 'document' },
+			{ name: 'Party', value: 'party' },
+			{ name: 'Production Order', value: 'productionOrder' },
+			{ name: 'Purchase Invoice', value: 'purchaseInvoice' },
+			{ name: 'Purchase Order', value: 'purchaseOrder' },
+			{ name: 'Quotation', value: 'quotation' },
+			{ name: 'Sales Invoice', value: 'salesInvoice' },
+			{ name: 'Sales Order', value: 'salesOrder' },
+			{ name: 'Shipment', value: 'shipment' },
+			{ name: 'Ticket', value: 'ticket' },
+		],
+		routing: {
+			send: {
+				type: 'body',
 				property: 'entityName',
 			},
 		},
@@ -697,8 +728,8 @@ export const commentFields: INodeProperties[] = [
 export const TICKET_SIMPLE_FIELDS = new Set([
 	'id',
 	'version',
-	'status',
-	'title',
+	'ticketStatusId',
+	'subject',
 	'assigneeId',
 	'requesterId',
 	'createdDate',
