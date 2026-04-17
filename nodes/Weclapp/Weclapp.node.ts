@@ -1,7 +1,11 @@
-import type { INodeType, INodeTypeDescription } from 'n8n-workflow';
+import type { IDataObject, IExecuteFunctions, INodeExecutionData, INodeType, INodeTypeDescription } from 'n8n-workflow';
 
 import { resources } from './descriptions/index';
 import { loadOptions, listSearch } from './methods/loadOptions';
+import { executeApplyPayment } from './actions/applyPayment';
+import { executeUpdatePrices } from './actions/articlePriceSync';
+import { executeCustomApiCall } from './descriptions/CustomApiDescription';
+import { executeDocumentUpload, executeDocumentUploadNewVersion } from './actions/documentUpload';
 
 export class Weclapp implements INodeType {
 	description: INodeTypeDescription = {
@@ -153,5 +157,102 @@ export class Weclapp implements INodeType {
 	methods = {
 		loadOptions,
 		listSearch,
+	};
+
+	/**
+	 * customOperations — programmatic handlers for composite operations that cannot
+	 * be expressed as declarative routing (multi-step logic, binary multipart uploads, etc.).
+	 *
+	 * n8n invokes these handlers in place of declarative routing when the node's
+	 * resource+operation matches a key here. All other operations continue to use
+	 * the declarative routing defined in the operation's `routing` property.
+	 *
+	 * Handlers must process ALL items themselves (iterate `this.getInputData()`)
+	 * and return `INodeExecutionData[][]` (one output branch).
+	 */
+	customOperations = {
+		article: {
+			updatePrices: async function (this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+				const items = this.getInputData();
+				const results: INodeExecutionData[] = [];
+
+				for (let i = 0; i < items.length; i++) {
+					// resourceLocator — extractValue: true resolves to the raw ID string.
+					const articleId = this.getNodeParameter('articleId', i, '', { extractValue: true }) as string;
+					const grossPrice = this.getNodeParameter('grossPrice', i) as number;
+					const currencyId = this.getNodeParameter('currencyId', i) as string;
+					const options = this.getNodeParameter('updatePricesOptions', i, {}) as {
+						salesChannel?: string;
+						validFrom?: number;
+					};
+
+					const result = await executeUpdatePrices.call(this, {
+						articleId,
+						grossPrice,
+						currencyId,
+						salesChannel: options.salesChannel,
+						validFrom: options.validFrom && options.validFrom > 0 ? options.validFrom : undefined,
+					});
+
+					results.push({ json: result as unknown as IDataObject, pairedItem: { item: i } });
+				}
+
+				return [results];
+			},
+		},
+
+		purchaseInvoice: {
+			applyPayment: async function (this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+				const items = this.getInputData();
+				const results: INodeExecutionData[] = [];
+
+				for (let i = 0; i < items.length; i++) {
+					const result = await executeApplyPayment.call(this, i);
+					results.push({ json: result as unknown as IDataObject, pairedItem: { item: i } });
+				}
+
+				return [results];
+			},
+		},
+
+		customApiCall: {
+			call: async function (this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+				const items = this.getInputData();
+				const results: INodeExecutionData[] = [];
+
+				for (let i = 0; i < items.length; i++) {
+					const result = await executeCustomApiCall.call(this, i);
+					results.push(result);
+				}
+
+				return [results];
+			},
+		},
+
+		document: {
+			upload: async function (this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+				const items = this.getInputData();
+				const results: INodeExecutionData[] = [];
+
+				for (let i = 0; i < items.length; i++) {
+					const result = await executeDocumentUpload.call(this, i);
+					results.push(result);
+				}
+
+				return [results];
+			},
+
+			uploadNewVersion: async function (this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+				const items = this.getInputData();
+				const results: INodeExecutionData[] = [];
+
+				for (let i = 0; i < items.length; i++) {
+					const result = await executeDocumentUploadNewVersion.call(this, i);
+					results.push(result);
+				}
+
+				return [results];
+			},
+		},
 	};
 }
