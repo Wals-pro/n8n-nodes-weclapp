@@ -1,0 +1,3711 @@
+{
+  "name": "QA-R01 LIVE weclapp Autopilot (Rebuilt)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1792,
+        2880
+      ],
+      "id": "ded82b85-27e7-43a7-92bd-76713b670ee0",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "result",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        4448
+      ],
+      "id": "872b80d1-0b7d-441c-899f-965185f392ea",
+      "name": "Split Out salesOrders1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "result",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        2496
+      ],
+      "id": "56f2e717-5f41-4a67-9486-54320b4fc81a",
+      "name": "Split Out salesOrders2",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "content": "## Lieferungen erstellen\nF\u00fcr vollst\u00e4ndig verf\u00fcgbare best\u00e4tigte Standard Auftr\u00e4ge. Achtung, Filter auf Auftr\u00e4ge mit weclapp Lieferung.",
+        "height": 164
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -480,
+        2304
+      ],
+      "typeVersion": 1,
+      "id": "561c81d6-11a2-4a88-bd0d-e9b3c7c7f4a7",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Rechnungen erstellen\nF\u00fcr vollst\u00e4ndig gelieferte best\u00e4tigte Standard Auftr\u00e4ge\n"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -512,
+        4240
+      ],
+      "typeVersion": 1,
+      "id": "5d6ea1e7-a290-40fc-8204-6e4b3b11f0f8",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Anpassung und AB + Postkarte am Auftrag\nDer Versand am Auftrag wird anhand der Vorbelegung der Artikel \u00fcberschrieben. Haben alle Positionen mit Artikel den Haken \"Keine Lieferung\", wird auch der Auftrag auf \"keine Lieferung gestellt\" dann die AB erstellt. \n\nEine Postkarte wird am Auftrag anhand das Mapping(Sales Channel -> ArticleId) hinzuf\u00fcgt.",
+        "height": 296,
+        "width": 320
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -480,
+        1792
+      ],
+      "typeVersion": 1,
+      "id": "f3797b70-84b0-4bfd-99a6-8a47e384bd17",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "result",
+        "include": "selectedOtherFields",
+        "fieldsToInclude": "referencedEntities",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        2128
+      ],
+      "id": "015ca1aa-319d-4f4e-98cf-edf7fdedf595",
+      "name": "Split Out salesOrders",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "254caea9-881a-4791-82a9-1f257c4ebdda",
+              "name": "weclappTenant",
+              "value": "neperformances",
+              "type": "string"
+            },
+            {
+              "id": "3b0b787f-a75b-4fd4-9f3b-2762debc9111",
+              "name": "salesChannels",
+              "value": "[\"GROSS2\", \"GROSS3\",  \"GROSS4\",  \"GROSS5\",  \"GROSS6\", \"GROSS7\", \"GROSS8\", \"GROSS9\", \"GROSS10\", \"GROSS11\", \"GROSS12\", \"GROSS13\", \"GROSS14\", \"GROSS15\", \"GROSS18\", \"GROSS19\", \"NET6\", \"NET8\", \"NET12\"]",
+              "type": "array"
+            },
+            {
+              "id": "4cf6baa1-18bd-4c2b-bebc-4e218afac4c6",
+              "name": "salesChannelsWithReturnLabel",
+              "value": "[\"GROSS5\", \"GROSS11\"]",
+              "type": "array"
+            },
+            {
+              "id": "582378f2-2cb6-4520-a257-ba34b44a87a7",
+              "name": "salesChannelsWithoutInvoices",
+              "value": "[\"GROSS5\", \"GROSS11\"]",
+              "type": "array"
+            },
+            {
+              "id": "8d178c64-84df-4a81-aab8-e1231ebe36fa",
+              "name": "salesChannelsNoAddressCheck",
+              "value": "[\"GROSS3\", \"GROSS9\", \"GROSS5\", \"GROSS11\", \"GROSS19\", \"NET8\", \"NET12\", \"NET6\"]",
+              "type": "array"
+            },
+            {
+              "id": "d4395dfa-7793-44b4-938a-5eaf32aaff91",
+              "name": "salesChannelsB2bWithOnlyInvoices",
+              "value": "[\"NET1\", \"NET2\", \"NET3\", \"NET4\", \"NET13\"]",
+              "type": "array"
+            },
+            {
+              "id": "e72db0b2-3f42-4172-b626-2104090e9d22",
+              "name": "salesChannelsWithKhooLabels",
+              "value": "[\"NET12\", \"GROSS19\"]",
+              "type": "array"
+            },
+            {
+              "id": "4304b627-64a1-4401-a7fb-05eb3e42740b",
+              "name": "rules",
+              "value": "=[\n    {\n      \"priority\": 0,\n      \"conditions\": [\n        { \"field\": \"order.salesChannel\", \"operator\": \"matches\", \"value\": \"^(NET12|GROSS19)$\" }\n      ],\n      \"carrierName\": \"Amazon Vendor Direct\"\n    },\n    {\n      \"priority\": 1,\n      \"conditions\": [\n        { \"field\": \"order.salesChannel\", \"operator\": \"==\", \"value\": \"NET8\" }\n      ],\n      \"carrierName\": \"Hornbach TMS\"\n    },\n    {\n      \"priority\": 2,\n      \"conditions\": [\n        { \"field\": \"deliveryAddress.countryCode\", \"operator\": \"==\", \"value\": \"DE\" },\n        { \"field\": \"deliveryAddress.street\", \"operator\": \"matches\", \"value\": \"^packstation\\\\s*\\\\d+\" },\n        { \"field\": \"deliveryAddress.street2\", \"operator\": \"matches\", \"value\": \"^packstation\\\\s*\\\\d+\" }\n      ],\n      \"carrierName\": \"DHL Paket\"\n    },\n    {\n      \"priority\": 3,\n      \"conditions\": [\n        { \"field\": \"deliveryAddress.countryCode\", \"operator\": \"!=\", \"value\": \"DE\" }\n      ],\n      \"carrierName\": \"DHL Paket International\"\n    },\n    {\n      \"priority\": 4,\n      \"conditions\": [\n        { \"field\": \"deliveryAddress.countryCode\", \"operator\": \"==\", \"value\": \"DE\" },\n        { \"field\": \"totalWeightKg\", \"operator\": \"<\", \"value\": 0.93 },\n        { \"field\": \"exclusionTags\", \"operator\": \"notContains\", \"value\": \"126312\" },\n        { \"field\": \"totalKleinpaketShare\", \"operator\": \"<=\", \"value\": 1 }\n      ],\n      \"carrierName\": \"DHL Paket\"\n    },\n    {\n      \"priority\": 5,\n      \"conditions\": [\n        { \"field\": \"itemCount\", \"operator\": \"==\", \"value\": 1 }\n      ],\n      \"carrierNameFrom\": \"defaultCarrier\"\n    }\n  ]",
+              "type": "array"
+            },
+            {
+              "id": "ff0348f7-85cd-4e12-b791-72eb554a11bb",
+              "name": "startDate",
+              "value": "={{ new Date(2025, 1, 1).getTime() }}",
+              "type": "string"
+            },
+            {
+              "id": "979db16e-37bc-4174-96a7-9af39be47392",
+              "name": "attributeIdDisableAutoprocessing",
+              "value": "126332",
+              "type": "string"
+            },
+            {
+              "id": "15bf2f55-29a8-4516-96dc-e8dca0b64c3f",
+              "name": "attributeIdInvoiceCreated",
+              "value": "126330",
+              "type": "string"
+            },
+            {
+              "id": "702db46a-a7b1-4ab7-b2db-3948c8a5de47",
+              "name": "attributeIdShipmentCreated",
+              "value": "126328",
+              "type": "string"
+            },
+            {
+              "id": "c258cb31-68ad-49dd-a133-733aa0decfac",
+              "name": "attributeIdShippingCarrierChecked",
+              "value": "126324",
+              "type": "string"
+            },
+            {
+              "id": "2948a242-0b15-4b27-981a-e156f4ffeeb8",
+              "name": "attributeIdAddressAiChecked",
+              "value": "126320",
+              "type": "string"
+            },
+            {
+              "id": "07990244-ca4d-4061-bba6-2f4b651dfa83",
+              "name": "attributeIdAddressAiChanged",
+              "value": "126326",
+              "type": "string"
+            },
+            {
+              "id": "1922b790-6e9f-440b-8b85-27f7714f9bd4",
+              "name": "attributeIdManualAddressCheckNeeded",
+              "value": "126322",
+              "type": "string"
+            },
+            {
+              "id": "31d57bc7-6aa5-440b-aa4b-e272215c4b50",
+              "name": "attributeIdDefaultShippingCarrier",
+              "value": "126303",
+              "type": "string"
+            },
+            {
+              "id": "e72fc43d-f88d-4f84-be5e-456c70353323",
+              "name": "attributeIdServiceExclusionTags",
+              "value": "126310",
+              "type": "string"
+            },
+            {
+              "id": "f8f69bdc-34eb-4825-a3ba-e1ed9dc5666d",
+              "name": "attributeIdSalesChannel",
+              "value": "150701",
+              "type": "string"
+            },
+            {
+              "id": "d595bc42-1c07-44ea-bdc8-50e1f21b4b13",
+              "name": "attributeIdKleinpaketShare",
+              "value": "649250",
+              "type": "string"
+            },
+            {
+              "id": "d35340e9-038e-48e7-8dba-90f918f628e1",
+              "name": "shippingCarriers",
+              "value": "[{\"id\":\"45614\",\"name\":\"Amazon Freight\"},{\"id\":\"45616\",\"name\":\"Dachser Targo Flex EU\"},{\"id\":\"45618\",\"name\":\"Cargoboard\"},{\"id\":\"45621\",\"name\":\"Dachser Targo Flex CP1\"},{\"id\":\"46651\",\"name\":\"DHL Paket\"},{\"id\":\"46652\",\"name\":\"DHL Paket International\"},{\"id\":\"46653\",\"name\":\"DHL Kleinpaket\"},{\"id\":\"46654\",\"name\":\"DHL Retoure\"},{\"id\":\"385274\",\"name\":\"Hornbach TMS\"},{\"id\":\"510341\",\"name\":\"Amazon Vendor Direct\"}]",
+              "type": "array"
+            },
+            {
+              "id": "1e89a4bf-2d9b-4327-9683-a6594fb46ef0",
+              "name": "selectableValueServiceExclusionTags",
+              "value": "[{\"id\":\"126312\",\"value\":\"kleinpaket\"},{\"id\":\"126314\",\"value\":\"international\"},{\"id\":\"126316\",\"value\":\"national\"},{\"id\":\"126318\",\"value\":\"zoll\"}]",
+              "type": "array"
+            },
+            {
+              "id": "8252a1db-c75b-4a33-b636-f99a8d8f480e",
+              "name": "selectableValueDefaultCarrier",
+              "value": "[{\"id\":\"382902\",\"value\":\"DHL Paket\"},{\"id\":\"382903\",\"value\":\"DHL Kleinpaket\"}]",
+              "type": "array"
+            },
+            {
+              "id": "c15d7025-6b1d-4496-9aff-00db1ba2aed1",
+              "name": "defaultShippingCarrierId",
+              "value": "{\"id\": \"46654\",\"name\": \"DHL Paket\" }",
+              "type": "string"
+            },
+            {
+              "id": "156e30da-f107-4d34-90ee-02d0a7c38d7d",
+              "name": "defaultShippingReturnCarrierId",
+              "value": "{\"id\": \"46654\",\"name\": \"DHL Retoure\" }",
+              "type": "object"
+            },
+            {
+              "id": "c2dfebb1-abea-407b-8b13-008b7d0956df",
+              "name": "pageSize",
+              "value": 250,
+              "type": "number"
+            },
+            {
+              "id": "884f20c7-9660-4a42-8836-80bd7c873521",
+              "name": "maxPages",
+              "value": "1",
+              "type": "string"
+            },
+            {
+              "id": "e3b4bb2f-b182-4559-9e6d-135a335c0f07",
+              "name": "batchSize",
+              "value": "1",
+              "type": "string"
+            },
+            {
+              "id": "5a6109df-a056-482b-8b37-8757e81a70b2",
+              "name": "batchInterval",
+              "value": "50",
+              "type": "string"
+            },
+            {
+              "id": "78567e25-fcb9-4613-9c1d-049e42d6b59d",
+              "name": "batchDocumentCreationBrakeFactor",
+              "value": "20",
+              "type": "string"
+            },
+            {
+              "id": "9bb9fc8c-8ad5-422d-99ec-403a48177cad",
+              "name": "fulfillmentProviderIdAmazonFBA",
+              "value": "51324",
+              "type": "string"
+            },
+            {
+              "id": "dedf683d-a7a2-4661-b7ec-2a3d3736950a",
+              "name": "fulfillmentProviderIdsAmazonFBA",
+              "value": "[\"51324\", \"136574\"]",
+              "type": "array"
+            },
+            {
+              "id": "b5a88619-b149-4e11-a08b-432aa2359af6",
+              "name": "apiVersion",
+              "value": "v2",
+              "type": "string"
+            },
+            {
+              "id": "dhl-retoure-flag-001",
+              "name": "useDirectDhlRetoure",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "194351e0-e22e-41ba-9136-21aa3e11d37e",
+              "name": "attributeIdDhlValidationMessages",
+              "value": "2309376",
+              "type": "string"
+            },
+            {
+              "id": "b180cd66-7818-43ea-b3f0-2426253e171e",
+              "name": "emailRecipientList",
+              "value": "ops@wals.pro",
+              "type": "string"
+            },
+            {
+              "id": "4b899e62-2d87-409c-ae86-953d19697524",
+              "name": "postCardsMapping",
+              "value": "[]",
+              "type": "array"
+            },
+            {
+              "id": "aca6cfb6-3c1c-435f-a293-a4c720d5fe6a",
+              "name": "shippingCutoffTime",
+              "value": "14:30",
+              "type": "string"
+            },
+            {
+              "id": "a8aa671c-a5cd-440f-baa9-bff54f013f53",
+              "name": "salesChannelsWithWhitelabelAddresses",
+              "value": "[{\"salesChannel\":\"GROSS1\",\"whiteLabelSenderAddress\":{\"company\":\"W. Neudorff Oesterreich GmbH\",\"first_name\":\"\",\"last_name\":\"\",\"street\":\"Oldentruper Str.\",\"street_no\":\"228a\",\"zip_code\":\"33605\",\"city\":\"Bielefeld\",\"country\":\"DE\"}}]",
+              "type": "array"
+            },
+            {
+              "id": "add-item-rules-001",
+              "name": "addItemRules",
+              "value": "[{\"triggerArticleId\":\"11974413\",\"addArticleId\":\"7188535\",\"addQuantity\":\"1\",\"addUnitPrice\":0}]",
+              "type": "array"
+            },
+            {
+              "id": "079e5973-7fa8-4847-a496-66ab4d120b8c",
+              "name": "attributeIdEinzelnVerpackt",
+              "value": "15624607",
+              "type": "string"
+            },
+            {
+              "id": "725b82ff-ad4d-4310-b24d-89bd279f93a3",
+              "name": "salesChannelsEinzelnVerpackt",
+              "value": "[\"NET8\", \"NET21\", \"GROSS1\", \"GROSS2\", \"GROSS4\", \"GROSS5\", \"GROSS6\", \"GROSS8\", \"GROSS9\", \"GROSS10\", \"GROSS11\", \"GROSS12\", \"GROSS13\"]",
+              "type": "string"
+            },
+            {
+              "id": "58cb6b2e-cc5b-4daf-abcf-2020ee458cea",
+              "name": "todayPlannedShippingDate",
+              "value": "={{ (() => { const [y,m,d] = new Date().toLocaleDateString('en-CA',{timeZone:'Europe/Berlin'}).split('-').map(Number); return Date.UTC(y,m-1,d,12,0,0,0); })() }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1552,
+        2880
+      ],
+      "id": "0cde8da6-e287-4f9b-bff0-2151a154be60",
+      "name": "Edit fields Constants"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "result",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        5056
+      ],
+      "id": "53909152-c8c6-4556-912d-9e931fe4c58b",
+      "name": "Split Out salesInvoices",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "result",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        5312
+      ],
+      "id": "40915800-4deb-4e95-b003-4604d9ff9004",
+      "name": "Split Out salesInvoice DOCUMENT already CREATED",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "content": "## Rechnungen abschlie\u00dfen\nRechnungen im PRES oder Dokument erstellt bis zum OPOS buchen, KOST2 setzen"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -512,
+        4848
+      ],
+      "typeVersion": 1,
+      "id": "ee734fe6-f7d8-487e-b33a-b68ff563f5cf",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "7030a2c9-4648-4734-8635-4700cb42639f",
+              "leftValue": "={{ $json.result }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "array",
+                "operation": "lengthEquals",
+                "rightType": "number"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        160,
+        4352
+      ],
+      "id": "c71853b1-4b92-420e-a195-3c9a143a8c32",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "content": "## Wals.pro weclapp Autopilot \n\nDas Ende von manuellen Arbeiten bei der Auftragsabwicklung im ERP.",
+        "height": 128,
+        "width": 336,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1792,
+        2720
+      ],
+      "typeVersion": 1,
+      "id": "f923ed1e-6d64-4381-a36d-9b7297eec722",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "result",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        1616
+      ],
+      "id": "d1e1fde2-7e95-4095-87ce-60dfce101e2a",
+      "name": "Split Out salesOrders3",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "content": "## Ki Addresspr\u00fcfung\nNur innerhalb Deutschlands aktiv. Erst Validierung mit DHL, danach wenn n\u00f6tig Korrektur mit OpenAi und erneute Validierung mit DHL.",
+        "height": 200
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -480,
+        1392
+      ],
+      "typeVersion": 1,
+      "id": "3cff438c-69ad-4af5-9f6c-ed15260e9197",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Constants from Edit Fields\nconst CONSTANTS = $('Edit fields Constants').first().json;\n\nconst ATTR_ID_DEFAULT_CARRIER   = CONSTANTS.attributeIdDefaultShippingCarrier;\nconst ATTR_ID_EXCLUSION_TAGS    = CONSTANTS.attributeIdServiceExclusionTags;\nconst ATTR_ID_KLEINPAKET_SHARE  = CONSTANTS.attributeIdKleinpaketShare;\n\n// Parse carriers (array or JSON string)\nconst SHIPPING_CARRIERS = Array.isArray(CONSTANTS.shippingCarriers)\n  ? CONSTANTS.shippingCarriers\n  : (() => { try { return JSON.parse(CONSTANTS.shippingCarriers || '[]'); } catch { return []; } })();\n\n// Parse selectable values for default carrier (array or JSON string)\nconst SELECTABLE_DEFAULT_CARRIER = Array.isArray(CONSTANTS.selectableValueDefaultCarrier)\n  ? CONSTANTS.selectableValueDefaultCarrier\n  : (() => { try { return JSON.parse(CONSTANTS.selectableValueDefaultCarrier || '[]'); } catch { return []; } })();\n\n// (Optional) parse service exclusion tags if present; not required for logic\nconst SELECTABLE_EXCLUSION_TAGS = Array.isArray(CONSTANTS.selectableValueServiceExclusionTags)\n  ? CONSTANTS.selectableValueServiceExclusionTags\n  : (() => { try { return JSON.parse(CONSTANTS.selectableValueServiceExclusionTags || '[]'); } catch { return []; } })();\n\n// Robust RULES parsing (supports string, array, or { rules: [] })\nlet RULES = [];\nif (CONSTANTS.rules) {\n  if (typeof CONSTANTS.rules === 'string') {\n    try {\n      const parsed = JSON.parse(CONSTANTS.rules);\n      RULES = Array.isArray(parsed) ? parsed : (parsed.rules || []);\n    } catch {}\n  } else if (Array.isArray(CONSTANTS.rules)) {\n    RULES = CONSTANTS.rules;\n  } else if (typeof CONSTANTS.rules === 'object' && Array.isArray(CONSTANTS.rules.rules)) {\n    RULES = CONSTANTS.rules.rules;\n  }\n}\n\n// Helpers\nfunction getArticle(articles, id) {\n  return (articles || []).find(a => String(a.id) === String(id));\n}\nfunction getCustomAttr(attrs, id) {\n  return (attrs || []).find(a => String(a.attributeDefinitionId) === String(id));\n}\nfunction getExclusionTags(article) {\n  const attr = getCustomAttr(article.customAttributes, ATTR_ID_EXCLUSION_TAGS);\n  if (!attr || !Array.isArray(attr.selectedValues)) return [];\n  const ids = attr.selectedValues.map(v => String(v.id)).filter(Boolean);\n  const labels = attr.selectedValues.map(v => String(v.value || '')).filter(Boolean);\n  return [...new Set([...ids, ...labels])];\n}\nfunction getDefaultCarrierSelectableId(article) {\n  const attr = getCustomAttr(article.customAttributes, ATTR_ID_DEFAULT_CARRIER);\n  return attr?.selectedValueId ? String(attr.selectedValueId) : null;\n}\nfunction getKleinpaketShare(article) {\n  const attr = getCustomAttr(article.customAttributes, ATTR_ID_KLEINPAKET_SHARE);\n  if (!attr || attr.numberValue === null || attr.numberValue === undefined) return 0;\n  const share = parseFloat(attr.numberValue);\n  return isNaN(share) ? 0 : share;\n}\nfunction resolveCarrierByName(name) {\n  if (!name) return { id: null, name: null };\n  const carrier = SHIPPING_CARRIERS.find(c => c.name === name);\n  return carrier ? { id: String(carrier.id), name: carrier.name } : { id: null, name: name };\n}\nfunction resolveCarrierById(id) {\n  const hit = SHIPPING_CARRIERS.find(c => String(c.id) === String(id));\n  return hit ? { id: String(hit.id), name: hit.name } : { id: null, name: null };\n}\nfunction mapSelectableDefaultToCarrier(selectableId) {\n  if (!selectableId) return { id: null, name: null };\n  const entry = SELECTABLE_DEFAULT_CARRIER.find(sv => String(sv.id) === String(selectableId));\n  const nameFromSelectable = entry?.value || null;\n  return resolveCarrierByName(nameFromSelectable);\n}\n\n// Resolve nested fields safely\nfunction resolvePath(obj, path) {\n  return path.split('.').reduce((acc, key) => acc?.[key], obj);\n}\n\n// Evaluate a single condition with normalization\nfunction evaluateCondition(cond, context) {\n  const { field, operator, value } = cond;\n  const fieldValue = resolvePath(context, field);\n\n  switch (operator) {\n    case '==':  return fieldValue == value;\n    case '!=':  return fieldValue != value;\n    case '<':   return Number(fieldValue) < Number(value);\n    case '<=':  return Number(fieldValue) <= Number(value);\n    case '>':   return Number(fieldValue) > Number(value);\n    case '>=':  return Number(fieldValue) >= Number(value);\n    case 'contains': {\n      if (!Array.isArray(fieldValue)) return false;\n      const needle = String(value);\n      return fieldValue.map(String).includes(needle);\n    }\n    case 'notContains': {\n      if (!Array.isArray(fieldValue)) return false;\n      const needle = String(value);\n      return !fieldValue.map(String).includes(needle);\n    }\n    case 'matches': {\n      if (typeof fieldValue !== 'string') return false;\n      let re;\n      try {\n        re = new RegExp(value, 'i');\n      } catch (e) {\n        return false;\n      }\n      return re.test(fieldValue.trim());\n    }\n    default: return false;\n  }\n}\n\n// Evaluate all rules in priority order\nfunction applyRules(order, referencedArticles) {\n  let totalWeight = 0;\n  let exclusionTags = [];\n  let totalItemCount = 0;\n  let totalKleinpaketShare = 0;\n\n  (order.orderItems || []).forEach(oi => {\n    const article = getArticle(referencedArticles, oi.articleId);\n    if (!article || article.articleType !== 'STORABLE') return;\n\n    const qty = parseInt(oi.quantity || 0, 10) || 0;\n\n    const w = parseFloat(article.articleGrossWeight || 0);\n    totalWeight += w * qty;\n\n    const kleinpaketShare = getKleinpaketShare(article);\n    totalKleinpaketShare += kleinpaketShare * qty;\n\n    exclusionTags = exclusionTags.concat(getExclusionTags(article));\n    totalItemCount += qty;\n  });\n\n  exclusionTags = [...new Set(exclusionTags.map(String))];\n\n  const context = {\n    order,\n    deliveryAddress: order.deliveryAddress || {},\n    totalWeightKg: totalWeight,\n    exclusionTags,\n    itemCount: totalItemCount,\n    totalKleinpaketShare\n  };\n\n  const sorted = [...RULES].sort((a, b) => (a.priority ?? 9999) - (b.priority ?? 9999));\n\n  for (const rule of sorted) {\n    const conditions = rule.conditions || [];\n    const match = conditions.every(c => evaluateCondition(c, context));\n    if (match) {\n      if (rule.carrierName) {\n        return resolveCarrierByName(rule.carrierName);\n      }\n      if (rule.carrierNameFrom === 'defaultCarrier' && context.itemCount === 1) {\n        const firstStorable = (order.orderItems || [])\n          .map(oi => getArticle(referencedArticles, oi.articleId))\n          .find(a => a && a.articleType === 'STORABLE');\n\n        if (!firstStorable) return resolveCarrierByName('DHL Paket');\n\n        const selectableId = getDefaultCarrierSelectableId(firstStorable);\n        const mapped = mapSelectableDefaultToCarrier(selectableId);\n        return mapped.id ? mapped : resolveCarrierByName('DHL Paket');\n      }\n    }\n  }\n\n  // Fallback: default carrier of first STORABLE article; if missing, use general default (DHL Paket)\n  if (order.orderItems?.length) {\n    const firstStorable = order.orderItems\n      .map(oi => getArticle(referencedArticles, oi.articleId))\n      .find(a => a && a.articleType === 'STORABLE');\n    if (firstStorable) {\n      const selectableId = getDefaultCarrierSelectableId(firstStorable);\n      const mapped = mapSelectableDefaultToCarrier(selectableId);\n      return mapped.id ? mapped : resolveCarrierByName('DHL Paket');\n    }\n  }\n  return resolveCarrierByName('DHL Paket');\n}\n\n// Main\nreturn $input.all().map(item => {\n  const order = item.json.result || {};\n  const referencedArticles = (item.json.referencedEntities || {}).article || [];\n\n  const { id: carrierId } = applyRules(order, referencedArticles);\n  order.defaultShippingCarrierId = carrierId || null;\n\n  delete order.orderItems;\n  item.json = order;\n  return item;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        2128
+      ],
+      "id": "f13f36d9-ea6e-456a-aafd-85ac480b0d97",
+      "name": "Code carrier rule engine"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "result",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        3312
+      ],
+      "id": "f0ef78dd-f271-4ed1-8f22-13e7f0f463c9",
+      "name": "Split Out salesOrders5",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "content": "## Amazon FBA\nAuftrag auf geliefert stellen",
+        "height": 144,
+        "width": 224
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -480,
+        3120
+      ],
+      "typeVersion": 1,
+      "id": "38cbd378-eeaf-4e73-90b8-4ed27f72cdaf",
+      "name": "Sticky Note12"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "result",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        3968
+      ],
+      "id": "b163e528-a386-4363-8b04-6f80b5e1f4e6",
+      "name": "Split Out",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json;\nconst shipments = Array.isArray(payload.result) ? payload.result : [];\nconst refSalesOrders = payload.referencedEntities?.salesOrder || [];\nconst salesOrderById = Object.fromEntries(refSalesOrders.map(o => [String(o.id), o]));\nconst allowed = new Set($('Edit fields Constants').first().json.salesChannelsWithReturnLabel || []);\nconst kept = shipments.filter(s => {\n  const so = s.mainSalesOrderId ? salesOrderById[String(s.mainSalesOrderId)] : null;\n  return so && allowed.has(so.salesChannel);\n});\nreturn [{ json: { result: kept }, pairedItem: { item: 0 } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -368,
+        4080
+      ],
+      "id": "code-filter-sc-001",
+      "name": "Code filter by parent salesChannel"
+    },
+    {
+      "parameters": {
+        "content": "## Retouren Labels\nNur f\u00fcr ausgew\u00e4hlte Vertriebskan\u00e4le",
+        "height": 112,
+        "width": 256
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -480,
+        3824
+      ],
+      "typeVersion": 1,
+      "id": "836fe8d3-91c9-40e5-8d15-acc0d18deae0",
+      "name": "Sticky Note17"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "dc5ac80e-84f0-4a17-af1c-a3322f85f2ba",
+              "leftValue": "={{ $('Edit fields Constants').item.json.salesChannelsNoAddressCheck }}",
+              "rightValue": "={{ $json.salesChannel }}",
+              "operator": {
+                "type": "array",
+                "operation": "notContains",
+                "rightType": "any"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -32,
+        1616
+      ],
+      "id": "64df39f0-8350-4b37-95f8-bcd7a0cd9d6a",
+      "name": "If not excluded for addressCheck"
+    },
+    {
+      "parameters": {
+        "content": "## Lieferscheine erstellen",
+        "height": 112
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -480,
+        3488
+      ],
+      "typeVersion": 1,
+      "id": "45aa5d64-2ea0-4030-8722-80297d7cd629",
+      "name": "Sticky Note18"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "result",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        3648
+      ],
+      "id": "b274116c-340b-40ab-8e50-946a24f2e751",
+      "name": "Split Out1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-dhl-direct",
+              "leftValue": "={{ $('Edit fields Constants').first().json.useDirectDhlRetoure }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -192,
+        3968
+      ],
+      "id": "if-use-direct-dhl-001",
+      "name": "If useDirectDhlRetoure"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "Kw48OkwzKnga6vmN"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        48,
+        3888
+      ],
+      "id": "call-dhl-child-001",
+      "name": "Call DHL Return Label Creator",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4e9e8974-ca50-40fc-9f08-e35864a5bad2",
+              "name": "addressChanged",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "7adb8b74-75c0-4fa6-8ab2-a920d86440c3",
+              "name": "manualCheckRequired",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "58ab6afa-57d7-4151-b75e-f87bdb02e171",
+              "name": "deliveryAddress",
+              "value": "={{ $json.deliveryAddress }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        272,
+        1344
+      ],
+      "id": "4d9e191c-adbb-4b72-a02c-508c8e94b93c",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "35da1522-2c0f-44f0-bbc0-d07a7683c906",
+              "leftValue": "={{ $json.result }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "array",
+                "operation": "lengthEquals",
+                "rightType": "number"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        192,
+        2880
+      ],
+      "id": "54d185f7-3e91-4b67-9818-78b4848b3dbd",
+      "name": "If result1"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "result",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        2880
+      ],
+      "id": "1110f57e-37a2-4594-8c10-afb71e5db1ce",
+      "name": "Split Out salesOrders4",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "content": "## Vendor Direct Lieferungen erstellen\nNur mit Khoo Label",
+        "height": 164
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -480,
+        2688
+      ],
+      "typeVersion": 1,
+      "id": "2620d8a2-6696-4ad5-98b8-ed8cbb08be4f",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "35da1522-2c0f-44f0-bbc0-d07a7683c906",
+              "leftValue": "={{ $json.result }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "array",
+                "operation": "lengthEquals",
+                "rightType": "number"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        2880
+      ],
+      "id": "f7740365-6056-4592-bcfd-e1b566f6bf00",
+      "name": "If result2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "9de9c1f3-25f6-4fcf-a2e3-8a6de8d77ec3",
+              "leftValue": "={{ $('Edit fields Constants').item.json.salesChannelsWithReturnLabel }}",
+              "rightValue": "={{ $('Split Out salesOrders4').item.json.salesChannel }}",
+              "operator": {
+                "type": "array",
+                "operation": "contains",
+                "rightType": "any"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1104,
+        2880
+      ],
+      "id": "063696f2-a79c-41ab-89ed-8ab265973858",
+      "name": "If needs label1"
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@notify.wals.pro",
+        "toEmail": "={{ $('Edit fields Constants').item.json.emailRecipientList }}",
+        "subject": "[weclapp Autopilot][AB] Failed to create AB for salesOrder",
+        "html": "=<a href=\"https://n8n.srv980912.hstgr.cloud/workflow/{{$workflow.id}}/executions/{{ $execution.id }}\">n8n Execution Link</a>\n\n<h1> Errors: </h1>\n\n{{ $json.data.map(item =>item.id+\" with the following error:<br/>\"+item.error.message+\"<br/><br/>\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        2128
+      ],
+      "id": "85704612-d3e6-463d-bca9-2d59b54cf38e",
+      "name": "Send email2",
+      "webhookId": "a8e0b1b4-3592-44f3-8f7c-2e5011b42ab8",
+      "credentials": {
+        "smtp": {
+          "id": "7J3wKR4Q6cI051xz",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        656,
+        2128
+      ],
+      "id": "3aaef21a-150a-410c-a4e9-ed329662b845",
+      "name": "Aggregate2"
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@notify.wals.pro",
+        "toEmail": "={{ $('Edit fields Constants').item.json.emailRecipientList }}",
+        "subject": "[weclapp Autopilot][Lieferscheine] Failed to create LS for shipment",
+        "html": "=<a href=\"https://n8n.srv980912.hstgr.cloud/workflow/{{$workflow.id}}/executions/{{ $execution.id }}\">n8n Execution Link</a>\n\n<h1> Errors: </h1>\n\n{{ $json.data.map(item =>item.id+\" with the following error:<br/>\"+item.error.message+\"<br/><br/>\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        400,
+        3648
+      ],
+      "id": "2d247545-5f76-41b0-be69-84fd3ce24b30",
+      "name": "Send email6",
+      "webhookId": "3100a08b-dc5e-47f2-a105-3d8dfd03d688",
+      "credentials": {
+        "smtp": {
+          "id": "7J3wKR4Q6cI051xz",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        176,
+        3648
+      ],
+      "id": "786504fa-33f7-49f7-9d53-9ba61886ed8d",
+      "name": "Aggregate6"
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@notify.wals.pro",
+        "toEmail": "={{ $('Edit fields Constants').item.json.emailRecipientList }}",
+        "subject": "[weclapp Autopilot] Failed to create return labels",
+        "html": "=<a href=\"https://n8n.srv980912.hstgr.cloud/workflow/{{$workflow.id}}/executions/{{ $execution.id }}\">n8n Execution Link</a>\n\n<h1> Errors: </h1>\n\n{{ $json.data.map(item =>item.id+\" with the following error:<br/>\"+item.error.message+\"<br/><br/>\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        400,
+        3968
+      ],
+      "id": "c5b41ecd-5ffa-4ba1-b511-cbcbaed6a542",
+      "name": "Send email8",
+      "webhookId": "2a19466f-0bc4-41ae-bc39-19f09be03926",
+      "credentials": {
+        "smtp": {
+          "id": "7J3wKR4Q6cI051xz",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        176,
+        3968
+      ],
+      "id": "f3e3c000-b1f1-44a8-a983-6bedf1b07216",
+      "name": "Aggregate8"
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@notify.wals.pro",
+        "toEmail": "={{ $('Edit fields Constants').item.json.emailRecipientList }}",
+        "subject": "[weclapp Autopilot][SalesInvoice] Failed to update salesInvoice to OPEN_ITEM_CREATED2",
+        "html": "=<a href=\"https://n8n.srv980912.hstgr.cloud/workflow/{{$workflow.id}}/executions/{{ $execution.id }}\">n8n Execution Link</a>\n\n<h1> Errors: </h1>\n\n{{ $json.data.map(item =>item.id+\" with the following error:<br/>\"+item.error.message+\"<br/><br/>\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        336,
+        5328
+      ],
+      "id": "f20ea11d-1962-4fdc-b772-0b66ed818d85",
+      "name": "Send email9",
+      "webhookId": "beb3249a-8433-405f-8a77-5613aeb08dcc",
+      "credentials": {
+        "smtp": {
+          "id": "7J3wKR4Q6cI051xz",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        160,
+        5328
+      ],
+      "id": "c2aa8c2e-e18c-48fa-9de4-c78133cd74b3",
+      "name": "Aggregate9"
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@notify.wals.pro",
+        "toEmail": "={{ $('Edit fields Constants').item.json.emailRecipientList }}",
+        "subject": "[weclapp Autopilot] Address Check",
+        "html": "=<a href=\"https://n8n.srv980912.hstgr.cloud/workflow/{{$workflow.id}}/executions/{{ $execution.id }}\">n8n Execution Link</a>\n\n<h1> Errors: </h1>\n\n{{ $json.data.map(item =>\"<p><b>Failed Node: </b>\"+item.subflowName+\"</br> <b>Item ID:</b> \"+item.id+\"</br><b>Error Message:</b> \"+item.error?.message||item.error+\"</p>\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1168,
+        1584
+      ],
+      "id": "d83f85f9-ce19-430c-820a-dec008fb2566",
+      "name": "Send email22",
+      "webhookId": "e022010d-5a3f-4add-9ee7-a7a733541c31",
+      "credentials": {
+        "smtp": {
+          "id": "7J3wKR4Q6cI051xz",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        944,
+        1584
+      ],
+      "id": "f7f02861-e30e-406f-b4b0-d51773ef2cd7",
+      "name": "Aggregate22"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e2f6bec-cb9b-49d2-a698-5505cabbecb0",
+              "name": "subflowName",
+              "value": "={{$prevNode.name}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        1584
+      ],
+      "id": "60526e72-a491-4295-a88a-3a116fcd4a2d",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@notify.wals.pro",
+        "toEmail": "={{ $('Edit fields Constants').item.json.emailRecipientList }}",
+        "subject": "[weclapp Autopilot] Shipment Creation",
+        "html": "=<a href=\"https://n8n.srv980912.hstgr.cloud/workflow/{{$workflow.id}}/executions/{{ $execution.id }}\">n8n Execution Link</a>\n\n<h1> Errors: </h1>\n\n{{ $json.data.map(item =>\"<p><b>Failed Node: </b>\"+item.subflowName+\"</br> <b>Item ID:</b> \"+item.id+\"</br><b>Error Message:</b> \"+item.error?.message||item.error+\"</p>\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1872,
+        2576
+      ],
+      "id": "5d511faf-09c1-4886-8bfb-586999392514",
+      "name": "Send email",
+      "webhookId": "0d74855e-0550-40eb-8afc-0874b74f3e23",
+      "credentials": {
+        "smtp": {
+          "id": "7J3wKR4Q6cI051xz",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        2576
+      ],
+      "id": "96e63a08-6395-4343-9b94-a62de4d4ba15",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e2f6bec-cb9b-49d2-a698-5505cabbecb0",
+              "name": "subflowName",
+              "value": "={{$prevNode.name}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1424,
+        2576
+      ],
+      "id": "f461dcbb-dc32-49ba-9e21-77427c3da003",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@notify.wals.pro",
+        "toEmail": "={{ $('Edit fields Constants').item.json.emailRecipientList }}",
+        "subject": "[weclapp Autopilot] Vendor Direct",
+        "html": "=<a href=\"https://n8n.srv980912.hstgr.cloud/workflow/{{$workflow.id}}/executions/{{ $execution.id }}\">n8n Execution Link</a>\n\n<h1> Errors: </h1>\n\n{{ $json.data.map(item =>\"<p><b>Failed Node: </b>\"+item.subflowName+\"</br> <b>Item ID:</b> \"+item.id+\"</br><b>Error Message:</b> \"+item.error?.message||item.error+\"</p>\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2304,
+        3040
+      ],
+      "id": "dace40e9-2208-4064-9245-deeb9a9834cb",
+      "name": "Send email1",
+      "webhookId": "b961d992-a3c9-4d4f-a278-885d124b0fec",
+      "credentials": {
+        "smtp": {
+          "id": "7J3wKR4Q6cI051xz",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2080,
+        3040
+      ],
+      "id": "5c085171-4938-4f0a-af12-4aaffc6c33ce",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e2f6bec-cb9b-49d2-a698-5505cabbecb0",
+              "name": "subflowName",
+              "value": "={{$prevNode.name}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1856,
+        3040
+      ],
+      "id": "6da1f8d4-6347-4bd7-9822-f1160b8c9af6",
+      "name": "Edit Fields4"
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@notify.wals.pro",
+        "toEmail": "={{ $('Edit fields Constants').item.json.emailRecipientList }}",
+        "subject": "[weclapp Autopilot] Amazon FBA",
+        "html": "=<a href=\"https://n8n.srv980912.hstgr.cloud/workflow/{{$workflow.id}}/executions/{{ $execution.id }}\">n8n Execution Link</a>\n\n<h1> Errors: </h1>\n\n{{ $json.data.map(item =>\"<p><b>Failed Node: </b>\"+item.subflowName+\"</br> <b>Item ID:</b> \"+item.id+\"</br><b>Error Message:</b> \"+item.error?.message||item.error+\"</p>\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        848,
+        3408
+      ],
+      "id": "46124322-29cb-47c1-93a1-5aa04c40a795",
+      "name": "Send email3",
+      "webhookId": "f771daf1-ffe6-45db-ab82-7aca8e80bd65",
+      "credentials": {
+        "smtp": {
+          "id": "7J3wKR4Q6cI051xz",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        624,
+        3408
+      ],
+      "id": "8c3a2c64-391a-4c63-959b-a28e080a114e",
+      "name": "Aggregate3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e2f6bec-cb9b-49d2-a698-5505cabbecb0",
+              "name": "subflowName",
+              "value": "={{$prevNode.name}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        3408
+      ],
+      "id": "5cc762c2-e4a4-42bc-864e-ee87eeea98c0",
+      "name": "Edit Fields5"
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@notify.wals.pro",
+        "toEmail": "={{ $('Edit fields Constants').item.json.emailRecipientList }}",
+        "subject": "[weclapp Autopilot] Invoice Creation",
+        "html": "=<a href=\"https://n8n.srv980912.hstgr.cloud/workflow/{{$workflow.id}}/executions/{{ $execution.id }}\">n8n Execution Link</a>\n\n<h1> Errors: </h1>\n\n{{ $json.data.map(item =>\"<p><b>Failed Node: </b>\"+item.subflowName+\"</br> <b>Item ID:</b> \"+item.id+\"</br><b>Error Message:</b> \"+item.error?.message||item.error+\"</p>\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1824,
+        4592
+      ],
+      "id": "b141937e-0979-48a7-98b5-97355a136aea",
+      "name": "Send email4",
+      "webhookId": "8638aafc-bb94-4d36-a029-32140fd7c329",
+      "credentials": {
+        "smtp": {
+          "id": "7J3wKR4Q6cI051xz",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        4592
+      ],
+      "id": "79fe288e-8f33-44c8-ab35-cba8474306e3",
+      "name": "Aggregate4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e2f6bec-cb9b-49d2-a698-5505cabbecb0",
+              "name": "subflowName",
+              "value": "={{$prevNode.name}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1392,
+        4592
+      ],
+      "id": "77bd02ac-ea95-4f81-b042-f6e08ca9a03e",
+      "name": "Edit Fields6"
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@notify.wals.pro",
+        "toEmail": "={{ $('Edit fields Constants').item.json.emailRecipientList }}",
+        "subject": "[weclapp Autopilot] SalesInvoice",
+        "html": "=<a href=\"https://n8n.srv980912.hstgr.cloud/workflow/{{$workflow.id}}/executions/{{ $execution.id }}\">n8n Execution Link</a>\n\n<h1> Errors: </h1>\n\n{{ $json.data.map(item =>\"<p><b>Failed Node: </b>\"+item.subflowName+\"</br> <b>Item ID:</b> \"+item.id+\"</br><b>Error Message:</b> \"+item.error?.message||item.error+\"</p>\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1056,
+        5088
+      ],
+      "id": "8182d159-4359-4049-8b8c-b5984e848d35",
+      "name": "Send email5",
+      "webhookId": "6455b337-7f16-41d0-b0c6-de37b2a5ec06",
+      "credentials": {
+        "smtp": {
+          "id": "7J3wKR4Q6cI051xz",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        832,
+        5088
+      ],
+      "id": "b5da7155-0403-43b3-8a76-851908371180",
+      "name": "Aggregate5"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e2f6bec-cb9b-49d2-a698-5505cabbecb0",
+              "name": "subflowName",
+              "value": "={{$prevNode.name}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        5088
+      ],
+      "id": "be5ad63e-cbf5-4289-84b2-f04359bda33d",
+      "name": "Edit Fields7"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst salesOrders = $('Split Out salesOrders').all();\nconst constants = $('Edit fields Constants').first().json;\n\nconst [cutoffHours, cutoffMinutes] = constants.shippingCutoffTime.split(':').map(Number);\n\nconst addItemRules = Array.isArray(constants.addItemRules) ? constants.addItemRules : [];\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  const salesOrder = salesOrders[i].json.result;\n\n  const salesChannel = salesOrder.salesChannel;\n\n  // Legacy postCardsMapping support (salesChannel-based article additions)\n  const mapping = (constants.postCardsMapping || []).find(m => m.salesChannel === salesChannel);\n\n  const whitelabelMapping = constants.salesChannelsWithWhitelabelAddresses?.find(\n    m => m.salesChannel === salesChannel\n  );\n\n  let createdDate = salesOrder.createdDate;\n  if (!createdDate || isNaN(createdDate)) {\n    createdDate = Date.now();\n  }\n\n  const berlinTime = new Date(createdDate).toLocaleTimeString('de-DE', {\n    timeZone: 'Europe/Berlin',\n    hour: '2-digit',\n    minute: '2-digit',\n    hour12: false\n  });\n  const parts = berlinTime.split(':');\n  const hours = Number(parts[0]);\n  const minutes = Number(parts[1]);\n  const isBefore1530 = hours < cutoffHours || (hours === cutoffHours && minutes <= cutoffMinutes);\n\n  let targetDate = new Date(createdDate);\n  if (!isBefore1530) {\n    targetDate = new Date(createdDate + 24 * 60 * 60 * 1000);\n  }\n\n  let berlinDateStr = targetDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });\n  let [year, month, day] = berlinDateStr.split('-').map(Number);\n  let dayOfWeek = new Date(year, month - 1, day).getDay();\n\n  if (dayOfWeek === 6) {\n    targetDate = new Date(targetDate.getTime() + 2 * 24 * 60 * 60 * 1000);\n  } else if (dayOfWeek === 0) {\n    targetDate = new Date(targetDate.getTime() + 1 * 24 * 60 * 60 * 1000);\n  }\n\n  berlinDateStr = targetDate.toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });\n  [year, month, day] = berlinDateStr.split('-').map(Number);\n  const plannedShippingDate = Date.UTC(year, month - 1, day, 12, 0, 0, 0);\n\n  const orderItems = salesOrder.orderItems.map(oi => ({ id: oi.id }));\n\n  // Legacy postCardsMapping (salesChannel -> articleId)\n  if (mapping) {\n    orderItems.push({\n      articleId: mapping.articleId,\n      quantity: \"1\",\n      unitPrice: 0\n    });\n  }\n\n  // addItemRules: flexible article additions by salesChannel, triggerArticleId, or both\n  // Each rule can have optional salesChannel and/or triggerArticleId conditions.\n  // Always adds exactly 1 piece per matched rule per order.\n  const orderArticleIds = new Set(\n    (salesOrder.orderItems || []).map(oi => String(oi.articleId))\n  );\n\n  for (const rule of addItemRules) {\n    const hasSalesChannelCondition = rule.salesChannel && String(rule.salesChannel).trim() !== '';\n    const hasArticleCondition = rule.triggerArticleId && String(rule.triggerArticleId).trim() !== '';\n\n    if (!hasSalesChannelCondition && !hasArticleCondition) continue;\n\n    let match = true;\n    if (hasSalesChannelCondition && salesChannel !== rule.salesChannel) match = false;\n    if (hasArticleCondition && !orderArticleIds.has(String(rule.triggerArticleId))) match = false;\n\n    if (match && rule.addArticleId) {\n      orderItems.push({\n        articleId: String(rule.addArticleId),\n        quantity: String(rule.addQuantity || \"1\"),\n        unitPrice: rule.addUnitPrice ?? 0\n      });\n    }\n  }\n\n  const weclappBody = {\n    customAttributes: [\n      {\n        attributeDefinitionId: constants.attributeIdShippingCarrierChecked,\n        booleanValue: true\n      },\n      {\n        attributeDefinitionId: constants.attributeIdSalesChannel,\n        stringValue: salesChannel\n      }\n    ],\n    defaultShippingCarrierId: item.json.defaultShippingCarrierId,\n    defaultShippingCarrierName: item.json.defaultShippingCarrierName,\n    defaultShippingReturnCarrierId: constants.defaultShippingReturnCarrierId.id,\n    orderNumberAtCustomer: salesOrder.orderNumber,\n    plannedShippingDate,\n    status: \"ORDER_CONFIRMATION_PRINTED\",\n    orderItems\n  };\n\n  if (whitelabelMapping) {\n    weclappBody.description = JSON.stringify({\n      whiteLabelSenderAddress: whitelabelMapping.whiteLabelSenderAddress\n    });\n  }\n\n  item.json.weclappBody = weclappBody;\n}\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        2128
+      ],
+      "id": "0133821f-2421-41d0-a811-57a8e6048cea",
+      "name": "Set order fields"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "dpPiej93WTjHQDOk",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/dpPiej93WTjHQDOk",
+          "cachedResultName": "LIVE Address Ai"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        272,
+        1536
+      ],
+      "id": "fda3eb5d-dcad-4524-848b-0eab32e52fb2",
+      "name": "Call 'LIVE Address Ai'",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.item.json;\nconst orders = data.result || [];\nconst articles = data.referencedEntities?.article || [];\nconst attributeIdEinzelnVerpackt = $('Edit fields Constants').item.json.attributeIdEinzelnVerpackt;\n\nconst articleMap = new Map();\nfor (const article of articles) {\n  const attrs = article.customAttributes || [];\n  const evAttr = attrs.find(a => String(a.attributeDefinitionId) === String(attributeIdEinzelnVerpackt));\n  articleMap.set(String(article.id), {\n    id: article.id,\n    articleNumber: article.articleNumber,\n    articleType: article.articleType,\n    einzelnVerpackt: evAttr?.booleanValue === true\n  });\n}\n\nconst enrichedOrders = orders.map(order => {\n  const orderItems = order.orderItems || [];\n  const hasEinzelnVerpackt = orderItems.some(item => {\n    const articleInfo = articleMap.get(String(item.articleId));\n    return articleInfo?.einzelnVerpackt === true;\n  });\n  \n  const enrichedItems = orderItems.map(item => {\n    const articleInfo = articleMap.get(String(item.articleId));\n    return {\n      ...item,\n      einzelnVerpackt: articleInfo?.einzelnVerpackt || false,\n      articleNumber: articleInfo?.articleNumber,\n      articleType: articleInfo?.articleType || null\n    };\n  });\n  \n  return {\n    ...order,\n    orderItems: enrichedItems,\n    hasEinzelnVerpackt\n  };\n});\n\nreturn [{ json: { result: enrichedOrders } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -272,
+        2496
+      ],
+      "id": "2e743640-786d-4e6e-a451-3af72fdf5859",
+      "name": "Enrich orders with EV flag"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "35da1522-2c0f-44f0-bbc0-d07a7683c906",
+              "leftValue": "={{ $json.result }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "array",
+                "operation": "lengthEquals",
+                "rightType": "number"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        384,
+        2496
+      ],
+      "id": "9917fa6a-46f0-470a-9080-01eea919b393",
+      "name": "If not result"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const order = $('Split Out salesOrders2').item.json;\nconst constants = $('Edit fields Constants').first().json;\n\nreturn {\n  json: {\n    order: order,\n    constants: constants\n  }\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        2352
+      ],
+      "id": "2a9e7abc-ffe8-4223-b45f-8d0fde356c00",
+      "name": "Code in JavaScript",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "T503EquoVO8Koaan",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/T503EquoVO8Koaan",
+          "cachedResultName": "LIVE Create Shipments for Einzeln Verpackt BACKUP"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "order",
+              "displayName": "order",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            },
+            {
+              "id": "constants",
+              "displayName": "constants",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        832,
+        2352
+      ],
+      "id": "83b96a88-839e-46de-95c3-c048b70924d6",
+      "name": "Call 'LIVE Create Shipments for Einzeln Verpackt BACKUP'",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "path": "qa/r01-autopilot",
+        "httpMethod": "POST"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1792,
+        2720
+      ],
+      "id": "qa-r01-webhook-trigger-001",
+      "name": "QA-R01 Webhook Trigger",
+      "webhookId": "qa-r01-autopilot-test"
+    },
+    {
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "customApiCall",
+        "method": "GET",
+        "entityPath": "salesOrder",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "salesChannel-in",
+              "value": "={{ $json.salesChannels.filter(ch => !$json.salesChannelsWithKhooLabels.some(label => label === ch)).toJsonString() }}"
+            },
+            {
+              "name": "filter",
+              "value": "=(orderDate > {{ $json.startDate }}) and\n(status = \"ORDER_CONFIRMATION_PRINTED\") and\n(customAttribute{{ $json.attributeIdDisableAutoprocessing }} = false) and\n(customAttribute{{ $json.attributeIdAddressAiChecked }} = true) and\n(customAttribute{{ $json.attributeIdManualAddressCheckNeeded }} = false) and\n(customAttribute{{ $json.attributeIdShippingCarrierChecked }} = true) and\n(customAttribute{{ $json.attributeIdShipmentCreated }} = false) and\n(shipped = false) and\n(fulfillmentProviderId > 0) and\nnot (fulfillmentProviderId in {{ $json.fulfillmentProviderIdsAmazonFBA.toJsonString() }}) and\n(\n  (salesOrderPaymentType = \"STANDARD\") or\n  (\n    (salesOrderPaymentType = \"PREPAYMENT\") and\n    (advancePaymentStatus = \"PAID\")\n  )\n) and\n((plannedShippingDate null) or (plannedShippingDate <= {{ $json.todayPlannedShippingDate }})) "
+            },
+            {
+              "name": "properties",
+              "value": "id,orderNumber,status,salesChannel,customAttributes,orderItems.articleId"
+            },
+            {
+              "name": "pageSize",
+              "value": "={{ $json.pageSize }}"
+            },
+            {
+              "name": "includeReferencedEntities",
+              "value": "orderItems.articleId"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        2496
+      ],
+      "id": "4d3f8200-43de-42f5-b66c-1359df8b15a6",
+      "name": "weclapp get salesOrder Confirmed",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "customApiCall",
+        "method": "GET",
+        "entityPath": "shipment",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pageSize",
+              "value": "1000"
+            },
+            {
+              "name": "salesOrders.id-in",
+              "value": "=[{{ $json.id }}]"
+            },
+            {
+              "name": "properties",
+              "value": "id,shipmentNumber,status"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        160,
+        2496
+      ],
+      "id": "2cd068b1-199b-4b45-91ae-6695e09316d2",
+      "name": "weclapp get salesOrder shipments",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "customApiCall",
+        "method": "GET",
+        "entityPath": "salesOrder",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "filter",
+              "value": "=(orderDate > {{ $json.startDate }}) and\n(status = \"ORDER_CONFIRMATION_PRINTED\") and\n(customAttribute{{ $json.attributeIdDisableAutoprocessing }} = false) and\n(customAttribute{{ $json.attributeIdInvoiceCreated }} = false) and\n(salesOrderPaymentType = \"STANDARD\") and\n((shipped = true) or (fulfillmentProviderId null))"
+            },
+            {
+              "name": "pageSize",
+              "value": "={{ $json.pageSize }}"
+            },
+            {
+              "name": "properties",
+              "value": "id,orderNumber,status,salesChannel"
+            },
+            {
+              "name": "salesChannel-in",
+              "value": "={{ \n  ([\n    ...$json.salesChannels.filter(ch => !$json.salesChannelsWithoutInvoices.includes(ch)),\n    ...$json.salesChannelsB2bWithOnlyInvoices\n  ]).toJsonString()\n}}"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        4448
+      ],
+      "id": "f1e017ea-bf30-4d0a-8721-707c1c116ac4",
+      "name": "weclapp get salesOrder shipped",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "salesOrder",
+        "operation": "createSalesInvoice",
+        "salesOrderId": "={{ $('Split Out salesOrders1').item.json.id }}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        384,
+        4448
+      ],
+      "id": "8b29951b-707b-453a-9835-57c7555e4982",
+      "name": "weclapp create invoice for salesOrder",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "resource": "salesInvoice",
+        "operation": "update",
+        "salesInvoiceId": "={{ $json.result.id }}",
+        "updateBody": "={\n \"status\" :\"DOCUMENT_CREATED\"\n}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        608,
+        4384
+      ],
+      "id": "2f3b2e35-c41e-4d5d-b166-8d9e50213f05",
+      "name": "weclapp put invoice for DOCUMENT_CREATED",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "salesInvoice",
+        "operation": "update",
+        "salesInvoiceId": "={{ $json.id }}",
+        "updateBody": "={\n \"status\" :\"OPEN_ITEM_CREATED\"\n}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        832,
+        4352
+      ],
+      "id": "ae682edc-a0aa-47a1-9935-00a4b370953d",
+      "name": "weclapp PUT invoice for OPEN_ITEM_CREATED",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "customApiCall",
+        "method": "GET",
+        "entityPath": "salesOrder",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "filter",
+              "value": "=(orderDate > {{ $json.startDate }}) and \n(status = \"ORDER_ENTRY_IN_PROGRESS\") and \n(customAttribute{{ $json.attributeIdDisableAutoprocessing }} = false) and \n(customAttribute{{ $json.attributeIdAddressAiChecked }} = true) and \n(customAttribute{{ $json.attributeIdManualAddressCheckNeeded }} = false) and \n(customAttribute{{ $json.attributeIdShippingCarrierChecked }} = false)"
+            },
+            {
+              "name": "pageSize",
+              "value": "={{ $json.pageSize }}"
+            },
+            {
+              "name": "properties",
+              "value": "id,deliveryAddress.countryCode,status,orderNumber,orderItems.id,orderItems.articleId,orderItems.quantity,defaultShippingCarrierId,salesChannel,createdDate,plannedShippingDate"
+            },
+            {
+              "name": "salesChannel-in",
+              "value": "={{ $json.salesChannels.toJsonString() }}"
+            },
+            {
+              "name": "includeReferencedEntities",
+              "value": "orderItems.articleId"
+            },
+            {
+              "name": "orderItems.id-notnull",
+              "value": ""
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        2128
+      ],
+      "id": "167f9c7b-59a7-4461-9b70-e178dcaf8c5c",
+      "name": "weclapp get salesOrder ORDER_ENTRY_IN_PROGRESS",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "salesOrder",
+        "operation": "update",
+        "salesOrderId": "={{ $json.id }}",
+        "body": "={{ $json.weclappBody }}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        416,
+        2128
+      ],
+      "id": "2361a8c6-7727-4db9-a1f7-930e86f35d9d",
+      "name": "weclapp create AB for salesOrder",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "customApiCall",
+        "method": "GET",
+        "entityPath": "salesInvoice",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status-eq",
+              "value": "DOCUMENT_CREATED"
+            },
+            {
+              "name": "filter",
+              "value": "=(createdDate > {{ $json.startDate }}) and (customAttribute{{ $json.attributeIdDisableAutoprocessing }} = false)"
+            },
+            {
+              "name": "salesChannel-in",
+              "value": "={{ $json.salesChannels.filter(ch => !$json.salesChannelsWithoutInvoices.includes(ch)).toJsonString() }}"
+            },
+            {
+              "name": "properties",
+              "value": "id,invoiceNumber,status"
+            },
+            {
+              "name": "pageSize",
+              "value": "={{ $json.pageSize }}"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        5312
+      ],
+      "id": "1198f311-497c-488c-bab4-48dd3a88d950",
+      "name": "weclapp get salesInvoice DOCUMENT CREATED",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "salesInvoice",
+        "operation": "update",
+        "salesInvoiceId": "={{ $json.id }}",
+        "updateBody": "={\n \"status\": \"DOCUMENT_CREATED\"\n}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        5056
+      ],
+      "id": "965bd925-9cda-437a-88e1-09a7846f70a5",
+      "name": "weclapp salesInvoice Document Created1",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "salesInvoice",
+        "operation": "update",
+        "salesInvoiceId": "={{ $('Split Out salesInvoices').item.json.id }}",
+        "updateBody": "={\n \"status\": \"OPEN_ITEM_CREATED\"\n}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        160,
+        4960
+      ],
+      "id": "6a9d20d3-0674-4d37-9167-d31e9f62ed84",
+      "name": "weclapp salesInvoice OPEN ITEM CREATED1",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "salesInvoice",
+        "operation": "update",
+        "salesInvoiceId": "={{ $('Split Out salesInvoice DOCUMENT already CREATED').item.json.id }}",
+        "updateBody": "={\n \"status\": \"OPEN_ITEM_CREATED\"\n}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        5312
+      ],
+      "id": "53cc22ec-355d-482c-b503-a173a6f6430c",
+      "name": "weclapp salesInvoice OPEN ITEM CREATED2",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "customApiCall",
+        "method": "GET",
+        "entityPath": "salesInvoice",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pageSize",
+              "value": "1000"
+            },
+            {
+              "name": "salesOrders.id-in",
+              "value": "=[{{ $json.id }}]"
+            },
+            {
+              "name": "status-notin",
+              "value": "[CANCELLED]"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        4448
+      ],
+      "id": "eadbb240-ab4e-4de9-a51b-41be724ee095",
+      "name": "weclapp get salesOrder invoices",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "resource": "salesOrder",
+        "operation": "update",
+        "salesOrderId": "={{ $('Split Out salesOrders3').item.json.id }}",
+        "body": "={\n  \"customAttributes\": [\n    {\n      \"attributeDefinitionId\": {{ $'Edit fields Constants'.item.json.attributeIdAddressAiChecked }},\n      \"booleanValue\": true\n    },\n    {\n      \"attributeDefinitionId\": {{ $'Edit fields Constants'.item.json.attributeIdAddressAiChanged }},\n      \"booleanValue\": {{ $json.addressChanged }}\n    },\n    {\n      \"attributeDefinitionId\": {{ $'Edit fields Constants'.item.json.attributeIdManualAddressCheckNeeded }},\n      \"booleanValue\": {{ $json.manualCheckRequired }}\n    },\n    {\n      \"attributeDefinitionId\": {{ $'Edit fields Constants'.item.json.attributeIdDhlValidationMessages }},\n      \"stringValue\": {{ JSON.stringify($json.dhlResponse?.error?.message || '')}}\n    }\n  ],\n  \"deliveryAddress\": {{ $json.deliveryAddress.toJsonString() }}\n}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        496,
+        1440
+      ],
+      "id": "6259f822-edaa-4c12-b12a-b803f705fa41",
+      "name": "weclapp create AB for salesOrder1",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "customApiCall",
+        "method": "GET",
+        "entityPath": "salesOrder",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "filter",
+              "value": "=(orderDate > {{ $json.startDate }}) and \n(status = \"ORDER_ENTRY_IN_PROGRESS\") and \n(customAttribute{{ $json.attributeIdDisableAutoprocessing }} = false) and \n(customAttribute{{ $json.attributeIdAddressAiChecked }} = false) and \n(customAttribute{{ $json.attributeIdAddressAiChanged }} = false) and \n(customAttribute{{ $json.attributeIdManualAddressCheckNeeded }} = false)"
+            },
+            {
+              "name": "pageSize",
+              "value": "={{ $json.pageSize }}"
+            },
+            {
+              "name": "properties",
+              "value": "id,orderNumber,status,salesChannel,deliveryAddress.street1,deliveryAddress.street2,deliveryAddress.city,deliveryAddress.zipcode,deliveryAddress.countryCode,deliveryAddress.company,tags"
+            },
+            {
+              "name": "salesChannel-in",
+              "value": "={{ $json.salesChannels.toJsonString() }}"
+            },
+            {
+              "name": "orderItems.id-notnull",
+              "value": ""
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        1616
+      ],
+      "id": "49938139-a0cb-40f9-9d6a-4b2a3a5cfce4",
+      "name": "weclapp get salesOrder ORDER_ENTRY_IN_PROGRESS1",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "salesOrder",
+        "operation": "update",
+        "salesOrderId": "={{ $('Split Out salesOrders2').item.json.id }}",
+        "body": "={\n  \"customAttributes\": [\n    {\n      \"attributeDefinitionId\": {{ $('Edit fields Constants').item.json.attributeIdShipmentCreated }},\n      \"booleanValue\": true\n    }\n  ]\n}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        2496
+      ],
+      "id": "97cb56a4-aa6e-4efc-a7cc-aad1412b351e",
+      "name": "PUT salesOrder shipment created1",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "salesOrder",
+        "operation": "update",
+        "salesOrderId": "={{ $('Split Out salesOrders1').item.json.id }}",
+        "body": "={\n  \"customAttributes\": [\n    {\n      \"attributeDefinitionId\": {{ $('Edit fields Constants').item.json.attributeIdInvoiceCreated }},\n      \"booleanValue\": true\n    }\n  ]\n}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        608,
+        4160
+      ],
+      "id": "a683c362-4238-4552-9355-7819af5fb36c",
+      "name": "PUT salesOrder invoice created1",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "salesOrder",
+        "operation": "shipOrderForExternalFulfillment",
+        "salesOrderId": "={{ $json.id }}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        3312
+      ],
+      "id": "2b0767fa-52ff-4b9c-9042-b28bb3350295",
+      "name": "weclapp set FBA order to shipped",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "customApiCall",
+        "method": "GET",
+        "entityPath": "salesOrder",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pageSize",
+              "value": "={{ $json.pageSize }}"
+            },
+            {
+              "name": "properties",
+              "value": "id,orderNumber,status,fulfillmentProviderId,salesChannel"
+            },
+            {
+              "name": "salesChannel-in",
+              "value": "={{ $json.salesChannelsNoAddressCheck.toJsonString() }}"
+            },
+            {
+              "name": "filter",
+              "value": "=(orderDate > {{ $json.startDate }}) and \n(status = \"ORDER_CONFIRMATION_PRINTED\") and \n(customAttribute{{ $json.attributeIdDisableAutoprocessing }} = false) and\n(shipped = false) and \n(\n  (fulfillmentProviderId null) or (fulfillmentProviderId in {{ $json.fulfillmentProviderIdsAmazonFBA.toJsonString() }})\n)"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        3312
+      ],
+      "id": "966ba311-222c-4a72-94b4-9a8c9a9a8fa0",
+      "name": "weclapp get salesOrder shipped2",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "customApiCall",
+        "method": "GET",
+        "entityPath": "shipment",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pageSize",
+              "value": "1000"
+            },
+            {
+              "name": "status-in",
+              "value": "[\"DELIVERY_NOTE_PRINTED\", \"NEW\", \"SHIPPED\"]"
+            },
+            {
+              "name": "properties",
+              "value": "id,version,shipmentNumber,status,packageReturnTrackingNumber,shippingReturnCarrierId,customAttributes,recipientAddress,shippedFromAddress,packageWeight,customerPurchaseOrderNumber,packageReferenceNumber,mainSalesOrderId,salesOrder:id,salesOrder:salesChannel"
+            },
+            {
+              "name": "includeReferencedEntities",
+              "value": "mainSalesOrderId"
+            },
+            {
+              "name": "packageReturnTrackingNumber-null",
+              "value": ""
+            },
+            {
+              "name": "serializeNulls",
+              "value": "true"
+            },
+            {
+              "name": "shipmentItems.id-notnull",
+              "value": ""
+            },
+            {
+              "name": "=customAttribute{{ $json.attributeIdDisableAutoprocessing }}-eq",
+              "value": "false"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        3968
+      ],
+      "id": "4cd94121-5af0-4541-8bc5-8613207b7752",
+      "name": "weclapp get shipments",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "salesOrder",
+        "operation": "update",
+        "salesOrderId": "={{ $('Split Out salesOrders5').item.json.id }}",
+        "body": "={\n  \"customAttributes\": [\n    {\n      \"attributeDefinitionId\": {{ $('Edit fields Constants').item.json.attributeIdShipmentCreated }},\n      \"booleanValue\": true\n    }\n  ]\n}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        192,
+        3216
+      ],
+      "id": "dfb5650c-23d1-4e0e-87dc-19ade06293e8",
+      "name": "PUT salesOrder shipment created",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "customApiCall",
+        "method": "GET",
+        "entityPath": "salesInvoice",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status-eq",
+              "value": "NEW"
+            },
+            {
+              "name": "pageSize",
+              "value": "={{ $json.pageSize }}"
+            },
+            {
+              "name": "filter",
+              "value": "=(createdDate > {{ $json.startDate }}) and (customAttribute{{ $json.attributeIdDisableAutoprocessing }} = false)"
+            },
+            {
+              "name": "salesChannel-in",
+              "value": "={{ $json.salesChannels.filter(ch => !$json.salesChannelsWithoutInvoices.includes(ch)).toJsonString() }}"
+            },
+            {
+              "name": "properties",
+              "value": "id,invoiceNumber,status"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        5056
+      ],
+      "id": "dfc8b737-899c-43bc-b00f-e2385219cf89",
+      "name": "weclapp get salesInvoice NEW",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "customApiCall",
+        "method": "GET",
+        "entityPath": "shipment",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pageSize",
+              "value": "300"
+            },
+            {
+              "name": "status-eq",
+              "value": "NEW"
+            },
+            {
+              "name": "properties",
+              "value": "id,shipmentNumber,status"
+            },
+            {
+              "name": "availability-eq",
+              "value": "COMPLETELY_AVAILABLE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        3648
+      ],
+      "id": "6bfb98bc-72f7-4c00-98b7-c97fafc3d37b",
+      "name": "weclapp get shipments1",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "shipment",
+        "operation": "update",
+        "shipmentId": "={{ $json.id }}",
+        "body": "={\n  \"status\": \"DELIVERY_NOTE_PRINTED\"\n}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        3648
+      ],
+      "id": "ce70a745-6d62-47cd-845b-cea6803532b0",
+      "name": "weclapp create LS for shipment2",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "resource": "shipment",
+        "operation": "createReturnLabels",
+        "shipmentId": "={{ $('Split Out').item.json.id }}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        48,
+        4080
+      ],
+      "id": "04146b2e-1620-4cf2-8f78-820a4c18b257",
+      "name": "weclapp create return labels1",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "resource": "salesOrder",
+        "operation": "update",
+        "salesOrderId": "={{ $('Split Out salesOrders3').item.json.id }}",
+        "body": "={\n  \"customAttributes\": [\n    {\n      \"attributeDefinitionId\": {{ $('Edit fields Constants').item.json.attributeIdAddressAiChecked }},\n      \"booleanValue\": true\n    },\n    {\n      \"attributeDefinitionId\": {{ $('Edit fields Constants').item.json.attributeIdAddressAiChanged }},\n      \"booleanValue\": false\n    },\n    {\n      \"attributeDefinitionId\": {{ $('Edit fields Constants').item.json.attributeIdManualAddressCheckNeeded }},\n      \"booleanValue\": false\n    }\n  ],\n  \"deliveryAddress\": {{ \n    ($json.deliveryAddress?.city \n      ? $json.deliveryAddress \n      : { ...$json.deliveryAddress, city: \"CITY\" }\n    ).toJsonString()\n  }}\n}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        496,
+        1744
+      ],
+      "id": "ac404c03-c0f9-410a-b21d-e987f74adc37",
+      "name": "weclapp set address valid flag on salesOrder",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "operation": "list",
+        "entityName": "salesOrder",
+        "entityId": "={{ $('Split Out salesOrders4').item.json.id }}",
+        "returnAll": false,
+        "limit": 1,
+        "filters": {
+          "filter": [
+            {
+              "field": "name",
+              "operator": "ilike",
+              "value": "KHOO%"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        2880
+      ],
+      "id": "a6423da9-82f0-4d3b-a688-39987aa7e3e1",
+      "name": "weclapp get salesOrder documents",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "customApiCall",
+        "method": "GET",
+        "entityPath": "salesOrder",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "salesChannel-in",
+              "value": "={{ $json.salesChannels.filter(ch => $json.salesChannelsWithKhooLabels.some(label => label === ch)).toJsonString() }}"
+            },
+            {
+              "name": "filter",
+              "value": "=(orderDate > {{ $json.startDate }}) and\n(status = \"ORDER_CONFIRMATION_PRINTED\") and\n(customAttribute{{ $json.attributeIdDisableAutoprocessing }} = false) and\n(customAttribute{{ $json.attributeIdAddressAiChecked }} = true) and\n(customAttribute{{ $json.attributeIdManualAddressCheckNeeded }} = false) and\n(customAttribute{{ $json.attributeIdShippingCarrierChecked }} = true) and\n(customAttribute{{ $json.attributeIdShipmentCreated }} = false) and\n(shipped = false) and\n(fulfillmentProviderId > 0) and\nnot (fulfillmentProviderId in {{ $json.fulfillmentProviderIdsAmazonFBA.toJsonString() }}) and\n(\n  (salesOrderPaymentType = \"STANDARD\") or\n  (\n    (salesOrderPaymentType = \"PREPAYMENT\") and\n    (advancePaymentStatus = \"PAID\")\n  )\n) and\n((plannedShippingDate null) or (plannedShippingDate <= {{ $json.todayPlannedShippingDate }}))"
+            },
+            {
+              "name": "properties",
+              "value": "id,orderNumber,status,salesChannel,customAttributes"
+            },
+            {
+              "name": "pageSize",
+              "value": "1000"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        2880
+      ],
+      "id": "ca0f11e7-95d4-474d-994c-a0ff015d65c4",
+      "name": "weclapp get salesOrder Confirmed1",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "customApiCall",
+        "method": "GET",
+        "entityPath": "shipment",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pageSize",
+              "value": "1000"
+            },
+            {
+              "name": "salesOrders.id-in",
+              "value": "=[{{ $('Split Out salesOrders4').item.json.id }}]"
+            },
+            {
+              "name": "properties",
+              "value": "id,shipmentNumber,status"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        416,
+        2880
+      ],
+      "id": "c761d738-f3e2-47df-b2b6-e753092a2161",
+      "name": "weclapp get salesOrder shipments1",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "salesOrder",
+        "operation": "createShipment",
+        "salesOrderId": "={{ $('Split Out salesOrders4').item.json.id }}",
+        "additionalSalesOrderIdsShipment": "=[]"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        864,
+        2880
+      ],
+      "id": "ce1eb008-020b-4b93-aefa-1f854061a2c6",
+      "name": "weclapp create shipment for salesOrder1",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "resource": "shipment",
+        "operation": "update",
+        "shipmentId": "={{ $('If needs label1').item.json.result.id }}",
+        "body": "={\n  \"status\": \"DELIVERY_NOTE_PRINTED\"\n}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        2880
+      ],
+      "id": "0266b3b7-0c5d-4537-9ff0-a95973068521",
+      "name": "weclapp create LS for shipment1",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "salesOrder",
+        "operation": "update",
+        "salesOrderId": "={{ $('Split Out salesOrders4').item.json.id }}",
+        "body": "={\n  \"customAttributes\": [\n    {\n      \"attributeDefinitionId\": {{ $('Edit fields Constants').item.json.attributeIdShipmentCreated }},\n      \"booleanValue\": true\n    }\n  ]\n}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        2736
+      ],
+      "id": "cafa9569-6328-49fa-b5bb-bbc26a27aaa2",
+      "name": "PUT salesOrder shipment created2",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "shipment",
+        "operation": "createReturnLabels",
+        "shipmentId": "={{ $json.result.id }}"
+      },
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        2880
+      ],
+      "id": "8cbb72d3-23c1-442e-afaf-f15628659e9e",
+      "name": "weclapp create return labels2",
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "weclapp testhandel"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit fields Constants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out salesOrders1": {
+      "main": [
+        [
+          {
+            "node": "weclapp get salesOrder invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp get salesOrder Confirmed": {
+      "main": [
+        [
+          {
+            "node": "Enrich orders with EV flag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp get salesOrder shipments": {
+      "main": [
+        [
+          {
+            "node": "If not result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out salesOrders2": {
+      "main": [
+        [
+          {
+            "node": "weclapp get salesOrder shipments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp get salesOrder shipped": {
+      "main": [
+        [
+          {
+            "node": "Split Out salesOrders1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp create invoice for salesOrder": {
+      "main": [
+        [
+          {
+            "node": "weclapp put invoice for DOCUMENT_CREATED",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "PUT salesOrder invoice created1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp put invoice for DOCUMENT_CREATED": {
+      "main": [
+        [
+          {
+            "node": "weclapp PUT invoice for OPEN_ITEM_CREATED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp PUT invoice for OPEN_ITEM_CREATED": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Edit Fields6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp get salesOrder ORDER_ENTRY_IN_PROGRESS": {
+      "main": [
+        [
+          {
+            "node": "Split Out salesOrders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp create AB for salesOrder": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Aggregate2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out salesOrders": {
+      "main": [
+        [
+          {
+            "node": "Code carrier rule engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit fields Constants": {
+      "main": [
+        [
+          {
+            "node": "weclapp get salesOrder ORDER_ENTRY_IN_PROGRESS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "weclapp get salesOrder Confirmed",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "weclapp get salesOrder shipped",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "weclapp get salesInvoice DOCUMENT CREATED",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "weclapp get salesOrder ORDER_ENTRY_IN_PROGRESS1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "weclapp get salesOrder shipped2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "weclapp get salesInvoice NEW",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "weclapp get shipments1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "weclapp get shipments",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "weclapp get salesOrder Confirmed1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp get salesInvoice DOCUMENT CREATED": {
+      "main": [
+        [
+          {
+            "node": "Split Out salesInvoice DOCUMENT already CREATED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp salesInvoice Document Created1": {
+      "main": [
+        [
+          {
+            "node": "weclapp salesInvoice OPEN ITEM CREATED1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp salesInvoice OPEN ITEM CREATED1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Edit Fields7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp salesInvoice OPEN ITEM CREATED2": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Aggregate9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out salesInvoices": {
+      "main": [
+        [
+          {
+            "node": "weclapp salesInvoice Document Created1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out salesInvoice DOCUMENT already CREATED": {
+      "main": [
+        [
+          {
+            "node": "weclapp salesInvoice OPEN ITEM CREATED2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp get salesOrder invoices": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "weclapp create invoice for salesOrder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PUT salesOrder invoice created1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out salesOrders3": {
+      "main": [
+        [
+          {
+            "node": "If not excluded for addressCheck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp create AB for salesOrder1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp get salesOrder ORDER_ENTRY_IN_PROGRESS1": {
+      "main": [
+        [
+          {
+            "node": "Split Out salesOrders3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code carrier rule engine": {
+      "main": [
+        [
+          {
+            "node": "Set order fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PUT salesOrder shipment created1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PUT salesOrder invoice created1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Edit Fields6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp set FBA order to shipped": {
+      "main": [
+        [
+          {
+            "node": "PUT salesOrder shipment created",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out salesOrders5": {
+      "main": [
+        [
+          {
+            "node": "weclapp set FBA order to shipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp get salesOrder shipped2": {
+      "main": [
+        [
+          {
+            "node": "Split Out salesOrders5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "If useDirectDhlRetoure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If useDirectDhlRetoure": {
+      "main": [
+        [
+          {
+            "node": "Call DHL Return Label Creator",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "weclapp create return labels1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp get shipments": {
+      "main": [
+        [
+          {
+            "node": "Code filter by parent salesChannel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code filter by parent salesChannel": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PUT salesOrder shipment created": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Edit Fields5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If not excluded for addressCheck": {
+      "main": [
+        [
+          {
+            "node": "Call 'LIVE Address Ai'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "weclapp set address valid flag on salesOrder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp get salesInvoice NEW": {
+      "main": [
+        [
+          {
+            "node": "Split Out salesInvoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "weclapp create LS for shipment2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp get shipments1": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp create LS for shipment2": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Aggregate6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp create return labels1": {
+      "main": [
+        [],
+        []
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "weclapp create AB for salesOrder1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp set address valid flag on salesOrder": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp get salesOrder documents": {
+      "main": [
+        [
+          {
+            "node": "If result1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If result1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "weclapp get salesOrder shipments1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp get salesOrder Confirmed1": {
+      "main": [
+        [
+          {
+            "node": "Split Out salesOrders4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp get salesOrder shipments1": {
+      "main": [
+        [
+          {
+            "node": "If result2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp create shipment for salesOrder1": {
+      "main": [
+        [
+          {
+            "node": "If needs label1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "PUT salesOrder shipment created2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp create LS for shipment1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out salesOrders4": {
+      "main": [
+        [
+          {
+            "node": "weclapp get salesOrder documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If result2": {
+      "main": [
+        [
+          {
+            "node": "weclapp create shipment for salesOrder1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PUT salesOrder shipment created2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PUT salesOrder shipment created2": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Edit Fields4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If needs label1": {
+      "main": [
+        [
+          {
+            "node": "weclapp create return labels2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "weclapp create LS for shipment1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "weclapp create return labels2": {
+      "main": [
+        [
+          {
+            "node": "weclapp create LS for shipment1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "weclapp create LS for shipment1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate2": {
+      "main": [
+        [
+          {
+            "node": "Send email2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate6": {
+      "main": [
+        [
+          {
+            "node": "Send email6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate8": {
+      "main": [
+        [
+          {
+            "node": "Send email8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate9": {
+      "main": [
+        [
+          {
+            "node": "Send email9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate22": {
+      "main": [
+        [
+          {
+            "node": "Send email22",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Aggregate22",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        []
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Send email1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate3": {
+      "main": [
+        [
+          {
+            "node": "Send email3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields5": {
+      "main": [
+        [
+          {
+            "node": "Aggregate3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate4": {
+      "main": [
+        [
+          {
+            "node": "Send email4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields6": {
+      "main": [
+        [
+          {
+            "node": "Aggregate4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate5": {
+      "main": [
+        [
+          {
+            "node": "Send email5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields7": {
+      "main": [
+        [
+          {
+            "node": "Aggregate5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set order fields": {
+      "main": [
+        [
+          {
+            "node": "weclapp create AB for salesOrder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'LIVE Address Ai'": {
+      "main": [
+        [
+          {
+            "node": "weclapp create AB for salesOrder1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich orders with EV flag": {
+      "main": [
+        [
+          {
+            "node": "Split Out salesOrders2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If not result": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PUT salesOrder shipment created1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Call 'LIVE Create Shipments for Einzeln Verpackt BACKUP'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'LIVE Create Shipments for Einzeln Verpackt BACKUP'": {
+      "main": [
+        [
+          {
+            "node": "PUT salesOrder shipment created1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "QA-R01 Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit fields Constants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "timeSavedPerExecution": 1,
+    "errorWorkflow": "8itAAo2gsNHKGOD0",
+    "availableInMCP": false,
+    "binaryMode": "separate"
+  },
+  "pinData": {}
+}

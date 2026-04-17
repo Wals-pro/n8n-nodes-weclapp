@@ -19,6 +19,7 @@
 
 import type { IDataObject, IExecuteFunctions, INodeExecutionData } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
+import { resolveWeclappUrl } from '../GenericFunctions';
 
 // ---------------------------------------------------------------------------
 // Global types — Node.js 20 ships FormData and Blob as globals.
@@ -87,11 +88,12 @@ async function postMultipart(
 	const form = new FormData();
 	form.append('file', blob, filename);
 
+	const url = await resolveWeclappUrl(ctx, endpoint);
 	let response: unknown;
 	try {
 		response = await ctx.helpers.httpRequestWithAuthentication.call(ctx, 'weclappApi', {
 			method: 'POST',
-			url: endpoint,
+			url,
 			qs,
 			// Cast needed: n8n types reference npm FormData, runtime is Node.js global FormData.
 			// Both are structurally compatible with axios's expectations.

@@ -7,6 +7,10 @@
  *  3. color field removed from tag (not in weclapp OpenAPI schema)
  *  4. customAttributeDefinition.create sends correct body fields:
  *       attributeType (not type), entities (not entityName), label (required)
+ *
+ * Covers the fixes from GitHub issue #58:
+ *  5. No displayOptions on children of collection or fixedCollection parameters
+ *     (n8n resolver crashes with "max iterations" if any child has displayOptions)
  */
 import { describe, it, expect } from 'vitest';
 import type { INodeProperties } from 'n8n-workflow';
@@ -14,6 +18,7 @@ import type { INodeProperties } from 'n8n-workflow';
 import {
 	tagFields,
 	unitFields,
+	userFields,
 	customAttributeDefinitionFields,
 } from '../../nodes/Weclapp/descriptions/TagUnitUserDescription';
 
@@ -218,5 +223,77 @@ describe('customAttributeDefinitionFields — Bug #63 fix: create body shape', (
 		const badType = bodyField.options?.find((o) => o.name === 'type');
 		expect(badEntityName).toBeUndefined();
 		expect(badType).toBeUndefined();
+	});
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Issue #58 regression: no displayOptions inside collection/fixedCollection children
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Walk every INodeProperties in the given array. For any field whose type is
+ * 'collection' or 'fixedCollection', assert that none of its children (options[]
+ * or options[].values[]) has a displayOptions key.
+ *
+ * n8n's getNodeParameters() cannot resolve dependency order for such children
+ * and throws "Could not resolve parameter dependencies. Max iterations reached!"
+ * which silently breaks workflow activation.
+ */
+function assertNoDisplayOptionsInCollectionChildren(
+	fields: INodeProperties[],
+	context: string,
+): void {
+	for (const field of fields) {
+		if (field.type === 'collection' || field.type === 'fixedCollection') {
+			const children: INodeProperties[] = [];
+
+			if (field.type === 'collection' && Array.isArray(field.options)) {
+				children.push(...(field.options as INodeProperties[]));
+			}
+
+			if (field.type === 'fixedCollection' && Array.isArray(field.options)) {
+				for (const group of field.options as Array<{ values?: INodeProperties[] }>) {
+					if (Array.isArray(group.values)) {
+						children.push(...group.values);
+					}
+				}
+			}
+
+			for (const child of children) {
+				if ('displayOptions' in child) {
+					throw new Error(
+						`[${context}] Field "${field.name}" (${field.type}) has a child "${child.name}" ` +
+							`with displayOptions — this crashes n8n's parameter resolver (issue #58).`,
+					);
+				}
+			}
+		}
+	}
+}
+
+describe('Issue #58 regression — no displayOptions inside collection/fixedCollection children', () => {
+	it('tagFields: no collection/fixedCollection child has displayOptions', () => {
+		expect(() => assertNoDisplayOptionsInCollectionChildren(tagFields, 'tagFields')).not.toThrow();
+	});
+
+	it('unitFields: no collection/fixedCollection child has displayOptions', () => {
+		expect(() =>
+			assertNoDisplayOptionsInCollectionChildren(unitFields, 'unitFields'),
+		).not.toThrow();
+	});
+
+	it('userFields: no collection/fixedCollection child has displayOptions', () => {
+		expect(() =>
+			assertNoDisplayOptionsInCollectionChildren(userFields, 'userFields'),
+		).not.toThrow();
+	});
+
+	it('customAttributeDefinitionFields: no collection/fixedCollection child has displayOptions', () => {
+		expect(() =>
+			assertNoDisplayOptionsInCollectionChildren(
+				customAttributeDefinitionFields,
+				'customAttributeDefinitionFields',
+			),
+		).not.toThrow();
 	});
 });

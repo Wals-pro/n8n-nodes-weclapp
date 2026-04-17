@@ -1,0 +1,600 @@
+{
+  "id": "UjNCEeyTDmiGTTHa",
+  "name": "QA2-R05-quotation-accepted-slack",
+  "nodes": [
+    {
+      "id": "qa2r05-weclapp-trigger",
+      "name": "weclapp Trigger",
+      "type": "n8n-nodes-weclapp.weclappTrigger",
+      "typeVersion": 1,
+      "position": [
+        -928,
+        80
+      ],
+      "parameters": {
+        "entityName": "quotation",
+        "events": [
+          "updated"
+        ],
+        "additionalOptions": {}
+      },
+      "credentials": {
+        "weclappApi": {
+          "id": "vBabVqjOHglitxCo",
+          "name": "testhandel"
+        }
+      }
+    },
+    {
+      "id": "qa2r05-webhook-test",
+      "name": "Webhook (manual test)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -928,
+        280
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "qa2-r05-quotation-slack",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "webhookId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    },
+    {
+      "id": "qa2r05-constants",
+      "name": "Constants",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -704,
+        160
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "weclappBaseUrl",
+              "value": "https://testhandel.weclapp.com",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "slackChannelName",
+              "value": "#sales",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "slackMarketingChannelName",
+              "value": "#marketing-content",
+              "type": "string"
+            },
+            {
+              "id": "c4",
+              "name": "marketingArticleId",
+              "value": "1217526",
+              "type": "string"
+            },
+            {
+              "id": "c5",
+              "name": "quotationAcceptanceNotificationSentAttributeId",
+              "value": "2856996",
+              "type": "string"
+            },
+            {
+              "id": "c6",
+              "name": "projectNameAttributeId",
+              "value": "93321",
+              "type": "string"
+            },
+            {
+              "id": "c7",
+              "name": "moduleAttributeId",
+              "value": "1048074",
+              "type": "string"
+            },
+            {
+              "id": "c8",
+              "name": "allowedModuleValues",
+              "value": "1048085,1048086,1048088,1059634",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "qa2r05-if-valid",
+      "name": "IF valid quotation event?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -480,
+        160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.entityId ? 1 : 0 }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ String($json.entityName || '').toLowerCase() }}",
+              "rightValue": "quotation",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "qa2r05-get-quotation",
+      "name": "weclapp get quotation",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        160
+      ],
+      "parameters": {
+        "resource": "quotation",
+        "operation": "get",
+        "quotationId": "={{ $json.entityId }}"
+      },
+      "credentials": {
+        "weclappApi": {
+          "id": "vBabVqjOHglitxCo",
+          "name": "testhandel"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "qa2r05-if-accepted",
+      "name": "IF quotation accepted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -32,
+        160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ String($json.status || '') }}",
+              "rightValue": "ACCEPTED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "qa2r05-if-not-sent",
+      "name": "IF notification not sent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        192,
+        160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ (() => { const targetId = String($('Constants').item.json.quotationAcceptanceNotificationSentAttributeId || ''); const attrs = Array.isArray($json.customAttributes) ? $json.customAttributes : []; const match = attrs.find((attr) => String(attr.attributeDefinitionId || '') === targetId); return !match || match.booleanValue !== true; })() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "qa2r05-get-opportunity",
+      "name": "weclapp get opportunity",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        416,
+        160
+      ],
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "call",
+        "method": "GET",
+        "entityPath": "opportunity",
+        "entityId": "={{ String($('weclapp get quotation').item.json.opportunityId || '0') }}",
+        "queryParameters": {}
+      },
+      "credentials": {
+        "weclappApi": {
+          "id": "vBabVqjOHglitxCo",
+          "name": "testhandel"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "qa2r05-if-allowed-module",
+      "name": "IF has allowed module?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        528,
+        160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ (() => { const moduleAttrId = $('Constants').item.json.moduleAttributeId; const allowed = String($('Constants').item.json.allowedModuleValues || '').split(','); const attrs = Array.isArray($json.customAttributes) ? $json.customAttributes : []; const moduleAttr = attrs.find(a => String(a.attributeDefinitionId) === moduleAttrId); if (!moduleAttr) return false; const selected = Array.isArray(moduleAttr.selectedValues) ? moduleAttr.selectedValues : []; return selected.some(sv => allowed.includes(String(sv.id))); })() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "qa2r05-build-message",
+      "name": "Build Slack message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        160
+      ],
+      "parameters": {
+        "jsCode": "const constants = $('Constants').first().json;\nconst q = $('weclapp get quotation').first().json;\nconst opp = $('weclapp get opportunity').first().json;\n\nconst baseUrl = constants.weclappBaseUrl;\nconst quotationLink = baseUrl + '/app/quotation/' + q.id;\nconst num = q.quotationNumber || '';\n\nconst oppName = opp && opp.name && !opp.error ? String(opp.name) : '';\nconst oppId = opp && opp.id ? opp.id : q.opportunityId;\nconst opportunityLink = oppId && oppName ? baseUrl + '/app/opportunity/' + oppId : '';\n\nconst projAttr = (q.customAttributes || []).find(\n  a => String(a.attributeDefinitionId) === constants.projectNameAttributeId\n);\nconst projName = projAttr ? String(projAttr.stringValue || '') : '';\n\nfunction fmtDate(ms) {\n  if (!ms) return null;\n  const d = new Date(ms);\n  return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + d.getFullYear();\n}\nconst spFrom = fmtDate(q.servicePeriodFrom);\nconst spTo = fmtDate(q.servicePeriodTo);\n\nconst lines = [];\nlines.push('Angebot <' + quotationLink + '|' + num + '> wurde soeben angenommen!');\nif (oppName) {\n  lines.push(opportunityLink ? 'Chance: <' + opportunityLink + '|' + oppName + '>' : 'Chance: ' + oppName);\n}\nif (projName) lines.push('Projekt: ' + projName);\nif (spFrom && spTo) lines.push('Leistungszeitraum: ' + spFrom + ' - ' + spTo);\n\nconst slackText = lines.join('\\n');\n\nlet slackMarketingText = slackText;\nconst mktItem = (q.quotationItems || []).find(\n  item => String(item.articleId) === constants.marketingArticleId\n);\nif (mktItem) {\n  const raw = String(mktItem.description || '');\n  const plain = raw\n    .replace(/<\\/li>\\s*<li>/gi, '\\n- ').replace(/<li>/gi, '- ').replace(/<\\/li>/gi, '')\n    .replace(/<br\\s*\\/?>/gi, '\\n').replace(/<\\/p>\\s*<p>/gi, '\\n').replace(/<[^>]+>/g, '')\n    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')\n    .replace(/[ \\t]+$/gm, '').replace(/\\n{2,}/g, '\\n').trim();\n  slackMarketingText += '\\n\\nEs wurde ein Marketing-Paket vereinbart mit folgendem Inhalt:\\n' + plain;\n}\n\nreturn [{\n  json: {\n    quotationId: String(q.id || ''),\n    quotationNumber: num,\n    quotationLink,\n    opportunityName: oppName,\n    projectName: projName,\n    slackText,\n    slackMarketingText,\n  },\n  pairedItem: { item: 0 },\n}];"
+      }
+    },
+    {
+      "id": "qa2r05-stub-slack-sales",
+      "name": "STUB Slack Sales (placeholder)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        976,
+        80
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "stub_channel",
+              "value": "={{ $('Constants').item.json.slackChannelName }}",
+              "type": "string"
+            },
+            {
+              "id": "s2",
+              "name": "stub_text",
+              "value": "={{ $json.slackText }}",
+              "type": "string"
+            },
+            {
+              "id": "s3",
+              "name": "_note",
+              "value": "QA2-R05: Slack node stubbed — no production Slack posts during QA",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "qa2r05-stub-slack-marketing",
+      "name": "STUB Slack Marketing (placeholder)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        976,
+        320
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "stub_channel",
+              "value": "={{ $('Constants').item.json.slackMarketingChannelName }}",
+              "type": "string"
+            },
+            {
+              "id": "s2",
+              "name": "stub_text",
+              "value": "={{ $json.slackMarketingText }}",
+              "type": "string"
+            },
+            {
+              "id": "s3",
+              "name": "_note",
+              "value": "QA2-R05: Slack Marketing node stubbed — no production Slack posts during QA",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "qa2r05-if-slack-sent",
+      "name": "IF Slack sent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1200,
+        80
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.stub_channel ? 1 : 0 }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "qa2r05-flag-notification",
+      "name": "weclapp flag notification sent",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        80
+      ],
+      "parameters": {
+        "resource": "quotation",
+        "operation": "update",
+        "quotationId": "={{ $('Build Slack message').item.json.quotationId }}",
+        "updateFields": "={{ JSON.stringify({ customAttributes: [{ attributeDefinitionId: $('Constants').item.json.quotationAcceptanceNotificationSentAttributeId, booleanValue: true }] }) }}"
+      },
+      "credentials": {
+        "weclappApi": {
+          "id": "vBabVqjOHglitxCo",
+          "name": "testhandel"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "weclapp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Constants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook (manual test)": {
+      "main": [
+        [
+          {
+            "node": "Constants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Constants": {
+      "main": [
+        [
+          {
+            "node": "IF valid quotation event?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF valid quotation event?": {
+      "main": [
+        [
+          {
+            "node": "weclapp get quotation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "weclapp get quotation": {
+      "main": [
+        [
+          {
+            "node": "IF quotation accepted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF quotation accepted?": {
+      "main": [
+        [
+          {
+            "node": "IF notification not sent?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "IF notification not sent?": {
+      "main": [
+        [
+          {
+            "node": "weclapp get opportunity",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "weclapp get opportunity": {
+      "main": [
+        [
+          {
+            "node": "IF has allowed module?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF has allowed module?": {
+      "main": [
+        [
+          {
+            "node": "Build Slack message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Build Slack message": {
+      "main": [
+        [
+          {
+            "node": "STUB Slack Sales (placeholder)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "STUB Slack Marketing (placeholder)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "STUB Slack Sales (placeholder)": {
+      "main": [
+        [
+          {
+            "node": "IF Slack sent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Slack sent?": {
+      "main": [
+        [
+          {
+            "node": "weclapp flag notification sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  }
+}
