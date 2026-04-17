@@ -81,6 +81,13 @@ async function postMultipart(
 	mimeType: string,
 	itemIndex: number,
 ): Promise<INodeExecutionData> {
+	// Resolve the absolute URL.
+	// customOperations bypass the declarative routing engine, so requestDefaults.baseURL
+	// is NOT automatically prepended — we must fetch it from the credential ourselves.
+	const creds = await ctx.getCredentials('weclappApi');
+	const baseUrl = (creds.baseUrl as string).replace(/\/$/, '');
+	const absoluteUrl = `${baseUrl}${endpoint}`;
+
 	// Build multipart form using the Node.js 20 global FormData + Blob.
 	// The Blob wraps the raw binary buffer; FormData handles boundary encoding.
 	const blob = new Blob([binaryData], { type: mimeType });
@@ -91,7 +98,7 @@ async function postMultipart(
 	try {
 		response = await ctx.helpers.httpRequestWithAuthentication.call(ctx, 'weclappApi', {
 			method: 'POST',
-			url: endpoint,
+			url: absoluteUrl,
 			qs,
 			// Cast needed: n8n types reference npm FormData, runtime is Node.js global FormData.
 			// Both are structurally compatible with axios's expectations.
