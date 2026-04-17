@@ -19,6 +19,7 @@
 
 import type { IDataObject, IExecuteFunctions, INodeExecutionData } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
+import { resolveWeclappUrl } from '../GenericFunctions';
 
 // ---------------------------------------------------------------------------
 // Global types — Node.js 20 ships FormData and Blob as globals.
@@ -81,24 +82,18 @@ async function postMultipart(
 	mimeType: string,
 	itemIndex: number,
 ): Promise<INodeExecutionData> {
-	// Resolve the absolute URL.
-	// customOperations bypass the declarative routing engine, so requestDefaults.baseURL
-	// is NOT automatically prepended — we must fetch it from the credential ourselves.
-	const creds = await ctx.getCredentials('weclappApi');
-	const baseUrl = (creds.baseUrl as string).replace(/\/$/, '');
-	const absoluteUrl = `${baseUrl}${endpoint}`;
-
 	// Build multipart form using the Node.js 20 global FormData + Blob.
 	// The Blob wraps the raw binary buffer; FormData handles boundary encoding.
 	const blob = new Blob([binaryData], { type: mimeType });
 	const form = new FormData();
 	form.append('file', blob, filename);
 
+	const url = await resolveWeclappUrl(ctx, endpoint);
 	let response: unknown;
 	try {
 		response = await ctx.helpers.httpRequestWithAuthentication.call(ctx, 'weclappApi', {
 			method: 'POST',
-			url: absoluteUrl,
+			url,
 			qs,
 			// Cast needed: n8n types reference npm FormData, runtime is Node.js global FormData.
 			// Both are structurally compatible with axios's expectations.
