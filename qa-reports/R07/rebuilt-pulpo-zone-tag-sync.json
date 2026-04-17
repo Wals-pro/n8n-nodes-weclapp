@@ -1,0 +1,264 @@
+{
+  "name": "QA-R07-Pulpo-Zone-Tag-Sync-Rebuilt",
+  "nodes": [
+    {
+      "id": "r07-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 200],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "qa/r07",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "r07-normalize",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [200, 200],
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "norm-tenant",
+              "name": "weclappTenant",
+              "value": "={{ $json.body?.weclappTenant ?? $json.weclappTenant ?? 'testhandel' }}",
+              "type": "string"
+            },
+            {
+              "id": "norm-zonemap",
+              "name": "zoneMap",
+              "value": "={{ $json.body?.zoneMap ?? $json.zoneMap ?? {} }}",
+              "type": "string"
+            },
+            {
+              "id": "norm-count",
+              "name": "articleCount",
+              "value": "={{ $json.body?.articleCount ?? $json.articleCount ?? 0 }}",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherProperties": false,
+        "options": {}
+      }
+    },
+    {
+      "id": "r07-list-articles",
+      "name": "weclapp List Articles",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [460, 200],
+      "parameters": {
+        "resource": "article",
+        "operation": "list",
+        "returnAll": true,
+        "filters": {
+          "filter": [
+            {
+              "field": "articleType",
+              "operator": "eq",
+              "value": "STORABLE"
+            }
+          ]
+        },
+        "additionalFields": {
+          "properties": "id,articleNumber,tags"
+        }
+      },
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "testhandel"
+        }
+      }
+    },
+    {
+      "id": "r07-split",
+      "name": "Split Out Articles",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [700, 200],
+      "parameters": {
+        "fieldToSplitOut": "result",
+        "options": {}
+      }
+    },
+    {
+      "id": "r07-diff",
+      "name": "Code: Compute Tag Diff",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 200],
+      "parameters": {
+        "jsCode": "// Compare current weclapp article tags with desired zone tags from Pulpo.\n// Only output articles where tags actually need to change.\nconst articles = $input.all();\n\n// Get zoneMap and tenant from Normalize Input node\nconst normData = $('Normalize Input').first().json;\nlet zoneMap = normData.zoneMap;\nif (typeof zoneMap === 'string') zoneMap = JSON.parse(zoneMap);\nzoneMap = zoneMap || {};\nconst weclappTenant = normData.weclappTenant || 'testhandel';\n\nconst output = [];\n\nfor (let i = 0; i < articles.length; i++) {\n  const article = articles[i].json;\n  const articleId = String(article.id);\n  const articleNumber = article.articleNumber || '';\n\n  // Desired tags: zones from Pulpo, or empty array if article has no Pulpo stock\n  const desiredTags = Array.isArray(zoneMap[articleId]) ? [...zoneMap[articleId]].sort() : [];\n\n  // Current tags on the weclapp article\n  const currentTags = Array.isArray(article.tags) ? [...article.tags].sort() : [];\n\n  // Compare sorted arrays\n  const changed = JSON.stringify(currentTags) !== JSON.stringify(desiredTags);\n\n  if (changed) {\n    output.push({\n      json: {\n        articleId,\n        articleNumber,\n        weclappTenant,\n        currentTags,\n        newTags: desiredTags,\n        added: desiredTags.filter(t => !currentTags.includes(t)),\n        removed: currentTags.filter(t => !desiredTags.includes(t)),\n      },\n      pairedItem: { item: i },\n    });\n  }\n}\n\nreturn output;"
+      }
+    },
+    {
+      "id": "r07-update-tags",
+      "name": "weclapp Update Article Tags",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [1180, 200],
+      "parameters": {
+        "resource": "customApiCall",
+        "operation": "call",
+        "method": "PUT",
+        "entityPath": "article",
+        "entityId": "={{ $json.articleId }}",
+        "queryParameters": {
+          "parameter": [
+            {
+              "key": "ignoreMissingProperties",
+              "value": "true"
+            }
+          ]
+        },
+        "requestBody": "={{ JSON.stringify({ tags: $json.newTags }) }}"
+      },
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "testhandel"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "r07-summary",
+      "name": "Code: Summary Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1420, 200],
+      "parameters": {
+        "jsCode": "// Build a summary of the zone tag sync operation.\nconst results = $input.all();\nlet successCount = 0;\nlet failCount = 0;\nconst failures = [];\n\nfor (const item of results) {\n  const j = item.json;\n  // Detect errors: HTTP error responses or error flag\n  if (j.error || (j.statusCode && j.statusCode >= 400)) {\n    failCount++;\n    failures.push({\n      articleId: j.articleId || 'unknown',\n      articleNumber: j.articleNumber || '',\n      error: j.error?.message || j.message || `HTTP ${j.statusCode}`,\n    });\n  } else {\n    successCount++;\n  }\n}\n\nreturn [{\n  json: {\n    summary: `Zone tag sync complete. Updated: ${successCount}, Failed: ${failCount}, Total: ${results.length}`,\n    successCount,\n    failCount,\n    totalProcessed: results.length,\n    failures: failures.slice(0, 20),\n  },\n  pairedItem: { item: 0 },\n}];"
+      }
+    },
+    {
+      "id": "r07-tag-list",
+      "name": "weclapp List Tags",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [460, 400],
+      "parameters": {
+        "resource": "tag",
+        "operation": "list",
+        "returnAll": true,
+        "additionalFields": {}
+      },
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "testhandel"
+        }
+      }
+    },
+    {
+      "id": "r07-tag-create",
+      "name": "weclapp Create Tag",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [700, 400],
+      "parameters": {
+        "resource": "tag",
+        "operation": "create",
+        "name": "QA-R07-Zone-Test",
+        "tagBody": {
+          "color": "#3399FF"
+        }
+      },
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "testhandel"
+        }
+      }
+    },
+    {
+      "id": "r07-tag-delete",
+      "name": "weclapp Delete Tag",
+      "type": "n8n-nodes-weclapp.weclapp",
+      "typeVersion": 1,
+      "position": [940, 400],
+      "parameters": {
+        "resource": "tag",
+        "operation": "delete",
+        "tagId": "={{ $json.id }}"
+      },
+      "credentials": {
+        "weclappApi": {
+          "id": "jebRfSixFZZxu8qH",
+          "name": "testhandel"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Normalize Input", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          { "node": "weclapp List Articles", "type": "main", "index": 0 },
+          { "node": "weclapp List Tags", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "weclapp List Articles": {
+      "main": [
+        [
+          { "node": "Split Out Articles", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Split Out Articles": {
+      "main": [
+        [
+          { "node": "Code: Compute Tag Diff", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Code: Compute Tag Diff": {
+      "main": [
+        [
+          { "node": "weclapp Update Article Tags", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "weclapp Update Article Tags": {
+      "main": [
+        [
+          { "node": "Code: Summary Report", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "weclapp List Tags": {
+      "main": [
+        [
+          { "node": "weclapp Create Tag", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "weclapp Create Tag": {
+      "main": [
+        [
+          { "node": "weclapp Delete Tag", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
