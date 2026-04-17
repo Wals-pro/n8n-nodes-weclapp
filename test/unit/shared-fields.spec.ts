@@ -110,13 +110,11 @@ describe('filtersCollection', () => {
 		expect(fieldEntry?.['required']).toBe(true);
 	});
 
-	it('value field is hidden when operator is null or notnull', () => {
+	it('value field has no displayOptions (#58: collection children with displayOptions crash n8n resolver)', () => {
 		const valueField = filterGroup.values.find((v) => v['name'] === 'value');
-		expect(
-			(valueField?.['displayOptions'] as Record<string, unknown> | undefined)?.[
-				'hide'
-			] as Record<string, unknown>,
-		).toEqual({ operator: ['null', 'notnull'] });
+		// displayOptions was intentionally removed — n8n crashes with "max iterations"
+		// when fixedCollection/collection children have displayOptions. See issue #58.
+		expect(valueField?.['displayOptions']).toBeUndefined();
 	});
 
 	it('all operator options have a non-empty description', () => {
