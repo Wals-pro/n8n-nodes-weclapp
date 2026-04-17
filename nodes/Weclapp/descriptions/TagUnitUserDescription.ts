@@ -125,7 +125,6 @@ export const tagFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description: 'Tag name',
-				displayOptions: { show: { operation: ['update'] } },
 				routing: { send: { type: 'body', property: 'name' } },
 			},
 		],
@@ -255,7 +254,6 @@ export const unitFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description: 'Unit name',
-				displayOptions: { show: { operation: ['update'] } },
 				routing: { send: { type: 'body', property: 'name' } },
 			},
 		],
@@ -401,7 +399,6 @@ export const userFields: INodeProperties[] = [
 				default: '',
 				placeholder: 'name@example.com',
 				description: 'Email address',
-				displayOptions: { show: { operation: ['update'] } },
 				routing: { send: { type: 'body', property: 'email' } },
 			},
 			{
@@ -426,7 +423,6 @@ export const userFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description: 'Login username',
-				displayOptions: { show: { operation: ['update'] } },
 				routing: { send: { type: 'body', property: 'username' } },
 			},
 		],
@@ -688,7 +684,6 @@ export const customAttributeDefinitionFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description: 'Unique key identifier for this attribute',
-				displayOptions: { show: { operation: ['update'] } },
 				routing: { send: { type: 'body', property: 'attributeKey' } },
 			},
 			{
@@ -697,7 +692,6 @@ export const customAttributeDefinitionFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description: 'Data type of the custom attribute (e.g. STRING, BOOLEAN)',
-				displayOptions: { show: { operation: ['update'] } },
 				routing: { send: { type: 'body', property: 'attributeType' } },
 			},
 			{
