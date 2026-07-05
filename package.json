@@ -1,6 +1,6 @@
 {
 	"name": "@wals-pro/n8n-nodes-weclapp",
-	"version": "0.3.1",
+	"version": "0.3.2",
 	"publishConfig": {
 		"access": "public"
 	},

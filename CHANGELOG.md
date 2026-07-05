@@ -2,6 +2,14 @@
 
 All notable changes to `@wals-pro/n8n-nodes-weclapp` are documented here.
 
+## [0.3.2] - 2026-07-05
+
+### Changed
+
+- README: expanded Contributing into a community section — issues are actively
+  triaged and worked, pull requests of every size are welcome, explicit invitation
+  for first-time contributors (draft PRs, early review).
+
 ## [0.3.1] - 2026-07-05
 
 Documentation and branding release — no functional changes.

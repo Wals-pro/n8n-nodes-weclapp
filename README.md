@@ -6,7 +6,7 @@
 
 n8n community node for the [weclapp](https://www.weclapp.com) ERP REST API (v2). Covers 16 resources with CRUD and entity actions, a generic Custom API Call operation for everything else, and a webhook trigger node. Maintained by [Wals-pro](https://wals.pro), a weclapp implementation partner — we build and run weclapp automations for customers, and this node is what our own workflows use.
 
-**Status: work in progress (pre-1.0).** The node is in productive use at Wals-pro, but resources and parameters are still evolving; minor versions can contain breaking changes. Known gaps are tracked in [GitHub Issues](https://github.com/Wals-pro/n8n-nodes-weclapp/issues), changes in the [CHANGELOG](CHANGELOG.md).
+**Status: work in progress (pre-1.0).** The node is in productive use at Wals-pro, but resources and parameters are still evolving; minor versions can contain breaking changes. Known gaps are tracked in [GitHub Issues](https://github.com/Wals-pro/n8n-nodes-weclapp/issues), changes in the [CHANGELOG](CHANGELOG.md). This is a community project — issues, pull requests, and first-time contributors are very welcome, see [Contributing](#contributing).
 
 **Package name:** install **`@wals-pro/n8n-nodes-weclapp`**. The unscoped `n8n-nodes-weclapp` on npm is an unrelated package by a different author — that name was taken before this project existed, so this node is published under the `@wals-pro` scope.
 
@@ -128,7 +128,15 @@ Example: [docs/examples/webhook-trigger.json](docs/examples/webhook-trigger.json
 
 ---
 
-## Development
+## Contributing
+
+This is a community project. We use the node for our own customer automations, but it only covers the weclapp API well if people bring their real-world use cases — so contributions of every size are genuinely welcome, and **issues are actively triaged and worked**.
+
+- **Issues** — bug reports, missing endpoints or resources, confusing parameters, docs gaps: [open an issue](https://github.com/Wals-pro/n8n-nodes-weclapp/issues). No template needed; a failing request/response or an exported workflow snippet helps a lot.
+- **Pull requests** — from typo fixes to whole new resources. Each resource lives in its own `descriptions/*Description.ts`; copy an existing one as the pattern.
+- **First contribution?** Open a draft PR or an issue describing what you want to build — we're happy to point you at the right files and review early.
+
+### Dev setup
 
 ```bash
 git clone https://github.com/Wals-pro/n8n-nodes-weclapp.git
@@ -144,7 +152,7 @@ npm run dev   # n8n at http://localhost:5678 with hot reload
 | `npm run test` | vitest unit + integration tests |
 | `npm run codegen` | Regenerate entity metadata from `@weclapp/sdk` |
 
-PRs welcome — each resource lives in its own `descriptions/*Description.ts`; run `npm run lint && npm run build && npm run test` before submitting. Bugs and endpoint gaps: [GitHub Issues](https://github.com/Wals-pro/n8n-nodes-weclapp/issues).
+Before submitting a PR: `npm run lint && npm run build && npm run test`.
 
 ---
 
