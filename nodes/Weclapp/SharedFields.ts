@@ -243,6 +243,14 @@ export async function emptyJsonBodyPreSend(
  * The paginate gate lives on the list op (listPaginationRouting), keyed on
  * `!$parameter.limit`, so there is no separate "Return All" toggle.
  */
+/*
+ * The three `*-for-limit` lint rules enforce n8n's standard limit convention
+ * (default 50, min 1, description "Max number of results to return"), which
+ * assumes the returnAll+limit pair. We deliberately deviate: a single Limit
+ * where empty/0 means "return all" with implicit pagination. Disabling these
+ * three rules for this field only is intentional.
+ */
+/* eslint-disable n8n-nodes-base/node-param-default-wrong-for-limit, n8n-nodes-base/node-param-description-wrong-for-limit, n8n-nodes-base/node-param-min-value-wrong-for-limit */
 export const limitField: INodeProperties = {
 	displayName: 'Limit',
 	name: 'limit',
@@ -263,6 +271,7 @@ export const limitField: INodeProperties = {
 		},
 	},
 };
+/* eslint-enable n8n-nodes-base/node-param-default-wrong-for-limit, n8n-nodes-base/node-param-description-wrong-for-limit, n8n-nodes-base/node-param-min-value-wrong-for-limit */
 
 /**
  * Routing fragment enabling implicit auto-pagination on a List operation.
