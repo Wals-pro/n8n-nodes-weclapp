@@ -1,6 +1,7 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { filtersCollection, returnAllOrLimit, simplifyField } from '../SharedFields';
+import { filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 export const bankAccountOperations: INodeProperties[] = [
 	{
@@ -58,24 +59,22 @@ export const bankAccountOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/bankAccount/id/{{$parameter["bankAccountId"]}}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
-				description: 'List all bank accounts',
-				action: 'List bank accounts',
+				description: 'Get many bank accounts',
+				action: 'Get many bank accounts',
 				routing: {
 					request: {
 						method: 'GET',
 						url: '/bankAccount',
-						qs: {
-							pageSize: 1000,
-						},
 					},
-					send: {
-						paginate: true,
-					},
+					...listPaginationRouting,
 					output: {
 						postReceive: [
 							{
@@ -84,6 +83,8 @@ export const bankAccountOperations: INodeProperties[] = [
 									property: 'result',
 								},
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -110,35 +111,70 @@ export const bankAccountOperations: INodeProperties[] = [
 
 export const bankAccountFields: INodeProperties[] = [
 	{
-		displayName: 'Bank Account ID',
+		displayName: 'Bank Account',
 		name: 'bankAccountId',
-		type: 'string',
+		type: 'resourceLocator',
+		default: { mode: 'list', value: '' },
 		required: true,
-		default: '',
-		description: 'The ID of the bank account',
+		description: 'The bank account to operate on',
 		displayOptions: {
 			show: {
 				resource: ['bankAccount'],
 				operation: ['get', 'update', 'delete'],
 			},
 		},
-	},
-	{
-		...returnAllOrLimit[0],
-		displayOptions: {
-			show: {
-				resource: ['bankAccount'],
-				operation: ['list'],
+		modes: [
+			{
+				displayName: 'From List',
+				name: 'list',
+				type: 'list',
+				typeOptions: {
+					searchListMethod: 'searchBankAccounts',
+					searchable: true,
+				},
 			},
-		},
+			{
+				displayName: 'By ID',
+				name: 'id',
+				type: 'string',
+				placeholder: 'e.g. 1234567890',
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '^[0-9]+$',
+							errorMessage: 'Bank Account ID must be numeric',
+						},
+					},
+				],
+			},
+			{
+				displayName: 'By URL',
+				name: 'url',
+				type: 'string',
+				placeholder: 'e.g. https://tenant.weclapp.com/webapp/api/v2/bankAccount/id/1234567890',
+				extractValue: {
+					type: 'regex',
+					regex: '/bankAccount/id/([0-9]+)',
+				},
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '/bankAccount/id/[0-9]+',
+							errorMessage: 'URL must contain /bankAccount/id/{id}',
+						},
+					},
+				],
+			},
+		],
 	},
 	{
-		...returnAllOrLimit[1],
+		...limitField,
 		displayOptions: {
 			show: {
 				resource: ['bankAccount'],
 				operation: ['list'],
-				returnAll: [false],
 			},
 		},
 	},
@@ -357,21 +393,16 @@ export const bankTransactionOperations: INodeProperties[] = [
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
-				description: 'List all bank transactions',
-				action: 'List bank transactions',
+				description: 'Get many bank transactions',
+				action: 'Get many bank transactions',
 				routing: {
 					request: {
 						method: 'GET',
 						url: '/bankTransaction',
-						qs: {
-							pageSize: 1000,
-						},
 					},
-					send: {
-						paginate: true,
-					},
+					...listPaginationRouting,
 					output: {
 						postReceive: [
 							{
@@ -380,6 +411,7 @@ export const bankTransactionOperations: INodeProperties[] = [
 									property: 'result',
 								},
 							},
+							mergeAdditionalProperties,
 						],
 					},
 				},
@@ -405,21 +437,11 @@ export const bankTransactionFields: INodeProperties[] = [
 		},
 	},
 	{
-		...returnAllOrLimit[0],
+		...limitField,
 		displayOptions: {
 			show: {
 				resource: ['bankTransaction'],
 				operation: ['list'],
-			},
-		},
-	},
-	{
-		...returnAllOrLimit[1],
-		displayOptions: {
-			show: {
-				resource: ['bankTransaction'],
-				operation: ['list'],
-				returnAll: [false],
 			},
 		},
 	},

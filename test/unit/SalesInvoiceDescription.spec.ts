@@ -78,7 +78,9 @@ describe('salesInvoiceFields', () => {
 		const idField = salesInvoiceFields.find((f) => f.name === 'salesInvoiceId');
 		expect(idField).toBeDefined();
 		expect(idField?.required).toBe(true);
-		expect(idField?.type).toBe('string');
+		expect(idField?.type).toBe('resourceLocator');
+		expect((idField?.default as { mode?: string })?.mode).toBe('list');
+		expect(idField?.modes?.map((m) => m.name)).toEqual(['list', 'id', 'url']);
 	});
 
 	it('salesInvoiceId is shown for all non-list operations', () => {

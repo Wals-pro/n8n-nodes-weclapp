@@ -1,13 +1,19 @@
-# n8n-nodes-weclapp
+# @wals-pro/n8n-nodes-weclapp
 
-[![npm](https://img.shields.io/npm/v/n8n-nodes-weclapp?label=npm)](https://www.npmjs.com/package/n8n-nodes-weclapp)
+[![npm](https://img.shields.io/npm/v/@wals-pro/n8n-nodes-weclapp?label=npm)](https://www.npmjs.com/package/@wals-pro/n8n-nodes-weclapp)
 [![Build](https://github.com/Wals-pro/n8n-nodes-weclapp/actions/workflows/ci.yml/badge.svg)](https://github.com/Wals-pro/n8n-nodes-weclapp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![n8n community node](https://img.shields.io/badge/n8n-community--node-orange?logo=n8n)](https://www.npmjs.com/package/n8n-nodes-weclapp)
+[![n8n community node](https://img.shields.io/badge/n8n-community--node-orange?logo=n8n)](https://www.npmjs.com/package/@wals-pro/n8n-nodes-weclapp)
 
 First-class n8n community node for the [weclapp ERP API](https://www.weclapp.com). Replaces a dozen hand-rolled HTTP Request nodes with a single, credential-aware node that handles authentication, pagination, filter validation, RFC 7807 error parsing, and binary (PDF/image) downloads — out of the box.
 
 > **Work in progress — resources are being added incrementally via parallel PRs.**
+
+> ⚠️ **Package name:** this is the Wals-pro node, published as **`@wals-pro/n8n-nodes-weclapp`**. The unscoped `n8n-nodes-weclapp` on npm is an unrelated third-party package — make sure you install the scoped name below.
+
+### Why the scoped name
+
+The unscoped npm name `n8n-nodes-weclapp` was already taken by an unrelated third-party package before this node existed, so it is not available to us. This project is published under the `@wals-pro` scope as **`@wals-pro/n8n-nodes-weclapp`** — the official Wals-pro weclapp node. Always install the scoped name; anything unscoped is a different codebase we do not maintain.
 
 ---
 
@@ -18,13 +24,13 @@ First-class n8n community node for the [weclapp ERP API](https://www.weclapp.com
 **Settings → Community nodes → Install**, then enter:
 
 ```
-n8n-nodes-weclapp
+@wals-pro/n8n-nodes-weclapp
 ```
 
 ### Self-hosted n8n (npm)
 
 ```bash
-npm install n8n-nodes-weclapp
+npm install @wals-pro/n8n-nodes-weclapp
 ```
 
 Restart n8n after installation.
@@ -33,14 +39,14 @@ Restart n8n after installation.
 
 ```bash
 docker exec -u node -it <container-name> \
-  npm install -g n8n-nodes-weclapp
+  npm install -g @wals-pro/n8n-nodes-weclapp
 ```
 
 Then restart the container. For persistent installs, mount a volume at `/home/node/.n8n` and install into it:
 
 ```bash
 docker exec -u node -it <container-name> \
-  n8n-node install n8n-nodes-weclapp
+  n8n-node install @wals-pro/n8n-nodes-weclapp
 ```
 
 ---
@@ -69,7 +75,7 @@ See [docs/usage.md — Authentication](docs/usage.md#authentication) for details
 
 1. Add a **weclapp** node to your workflow.
 2. Set **Resource** → `Article`, **Operation** → `Get Many`.
-3. Toggle **Return All** or set a **Limit**.
+3. Set a **Limit** (leave it empty or `0` to fetch all pages automatically).
 4. Optionally add a **Filter**: `status -eq ACTIVE`.
 5. Connect to a downstream node (e.g. **Spreadsheet File**, **HTTP Request**).
 
@@ -121,6 +127,30 @@ Import the example: [docs/examples/webhook-trigger.json](docs/examples/webhook-t
 | [sales-order-lifecycle.json](docs/examples/sales-order-lifecycle.json) | Get and update a sales order |
 | [webhook-trigger.json](docs/examples/webhook-trigger.json) | Receive weclapp events in real time |
 | [reconciliation-find.json](docs/examples/reconciliation-find.json) | Fetch open bank transactions + invoices |
+
+---
+
+## Update & Workflow Tips
+
+### Update operations are version-free
+
+Update sends a `PUT` with `ignoreMissingProperties=true`, so you do **not** need to fetch the entity's current `version` first, and you do **not** need to send a full body. A status-only update works on its own:
+
+```json
+{ "status": "DELIVERY_NOTE_PRINTED" }
+```
+
+Only the properties you send are changed; every other field on the record is left untouched. This avoids optimistic-lock (`409`) errors from stale versions and prevents accidentally wiping fields you did not include.
+
+### Guard downstream marker writes on create success
+
+After a **Create** operation, verify success before any downstream step that writes a marker back (e.g. flagging a source row as "synced"). A created record has a non-null `id` and no `error`, so gate the marker step with:
+
+```
+{{ $json.id != null && $json.error == null }}
+```
+
+For marker workflows, also prefer the node's **Stop On Error** setting (Settings → *Stop On Error*): if the create fails, the whole item stops instead of falling through and marking a record as synced that was never created.
 
 ---
 

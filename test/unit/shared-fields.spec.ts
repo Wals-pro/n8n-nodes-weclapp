@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import type { INodePropertyOptions } from 'n8n-workflow';
 import {
-	returnAllOrLimit,
+	limitField,
+	listPaginationRouting,
+	paginationConfig,
 	filtersCollection,
 	additionalFields,
 	ignoreMissingPropertiesField,
@@ -21,36 +23,34 @@ const operatorOptions = operatorField?.['options'] as INodePropertyOptions[] | u
 const operatorValues = operatorOptions?.map((o) => o.value) ?? [];
 
 // ---------------------------------------------------------------------------
-// returnAllOrLimit
+// limitField + listPaginationRouting (single-Limit UX, replaces returnAllOrLimit)
 // ---------------------------------------------------------------------------
 
-describe('returnAllOrLimit', () => {
-	it('has exactly 2 entries', () => {
-		expect(returnAllOrLimit).toHaveLength(2);
+describe('limitField', () => {
+	it('is a single number field named limit defaulting to 0', () => {
+		expect(limitField.name).toBe('limit');
+		expect(limitField.type).toBe('number');
+		expect(limitField.default).toBe(0);
 	});
 
-	it('first entry is returnAll boolean defaulting to false', () => {
-		const field = returnAllOrLimit[0];
-		expect(field.name).toBe('returnAll');
-		expect(field.type).toBe('boolean');
-		expect(field.default).toBe(false);
+	it('has typeOptions.minValue = 0', () => {
+		expect(limitField.typeOptions?.minValue).toBe(0);
 	});
 
-	it('second entry is limit number defaulting to 50', () => {
-		const field = returnAllOrLimit[1];
-		expect(field.name).toBe('limit');
-		expect(field.type).toBe('number');
-		expect(field.default).toBe(50);
+	it('routes send.type=query to pageSize with a fallback expression', () => {
+		expect(limitField.routing?.send?.type).toBe('query');
+		expect(limitField.routing?.send?.property).toBe('pageSize');
+		expect(limitField.routing?.send?.value).toBe('={{ $value > 0 ? $value : 1000 }}');
+	});
+});
+
+describe('listPaginationRouting', () => {
+	it('operations.pagination is paginationConfig', () => {
+		expect(listPaginationRouting.operations?.pagination).toBe(paginationConfig);
 	});
 
-	it('limit has typeOptions.minValue = 1', () => {
-		const field = returnAllOrLimit[1];
-		expect(field.typeOptions?.minValue).toBe(1);
-	});
-
-	it('limit displayOptions.show.returnAll equals [false]', () => {
-		const field = returnAllOrLimit[1];
-		expect(field.displayOptions?.show?.['returnAll']).toEqual([false]);
+	it('paginate gate is keyed on !$parameter.limit', () => {
+		expect(listPaginationRouting.send?.paginate).toBe('={{ !$parameter.limit }}');
 	});
 });
 
@@ -72,9 +72,11 @@ describe('filtersCollection', () => {
 		expect(filtersCollection.placeholder).toBe('Add filter');
 	});
 
-	it('has exactly one option group named filter', () => {
-		expect(filtersCollection.options).toHaveLength(1);
+	it('has two option groups: filter and rawFilter', () => {
+		expect(filtersCollection.options).toHaveLength(2);
 		expect(filterGroup.name).toBe('filter');
+		const groups = filtersCollection.options as Array<{ name: string }>;
+		expect(groups.map((g) => g.name)).toEqual(['filter', 'rawFilter']);
 	});
 
 	it('operator field has exactly 14 options', () => {
