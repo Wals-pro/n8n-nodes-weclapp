@@ -2,6 +2,21 @@
 
 All notable changes to `@wals-pro/n8n-nodes-weclapp` are documented here.
 
+## [0.3.1] - 2026-07-05
+
+Documentation and branding release — no functional changes.
+
+### Changed
+
+- README rewritten in a factual tone: requirements section, honest work-in-progress
+  status, behavior notes (limit/pagination semantics, filters incl. raw expression,
+  projection, partial updates, custom attributes, create guard, error parsing).
+- Corrected install guidance: community nodes require self-hosted n8n; the node is
+  not yet verified and therefore not installable on n8n Cloud ("n8n desktop" removed).
+- Node and trigger in-UI notices plus the credential header now reference the
+  **weclapp MCP server** ([weclapp-mcp.wals.pro](https://weclapp-mcp.wals.pro))
+  instead of the retired copilot link.
+
 ## [0.3.0] - 2026-07-05
 
 First release under the scoped package name **`@wals-pro/n8n-nodes-weclapp`** (the

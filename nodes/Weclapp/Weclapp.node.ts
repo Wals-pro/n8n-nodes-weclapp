@@ -19,7 +19,7 @@ export class Weclapp implements INodeType {
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-		description: 'Interact with the weclapp ERP API — CRUD, actions, binary downloads, and webhooks. Maintained by Wals-pro (wals.pro). AI copilot available at dev.weclapp-ai.wals.pro (Beta).',
+		description: 'Interact with the weclapp ERP API — CRUD, entity actions, binary downloads, and webhooks. Maintained by Wals-pro (wals.pro).',
 		defaults: {
 			name: 'weclapp',
 		},
@@ -41,7 +41,7 @@ export class Weclapp implements INodeType {
 		},
 		properties: [
 			{
-				displayName: 'Built by <a href="https://wals.pro" target="_blank">Wals-pro</a> — try the AI copilot at <a href="https://dev.weclapp-ai.wals.pro" target="_blank">weclapp-ai.wals.pro</a> (Beta)',
+				displayName: 'Built by <a href="https://wals.pro" target="_blank">Wals-pro</a> — weclapp MCP server for AI assistants: <a href="https://weclapp-mcp.wals.pro" target="_blank">weclapp-mcp.wals.pro</a>',
 				name: 'walsproNotice',
 				type: 'notice',
 				default: '',

@@ -74,7 +74,7 @@ export class WeclappTrigger implements INodeType {
 		],
 		properties: [
 			{
-				displayName: 'Built by <a href="https://wals.pro" target="_blank">Wals-pro</a> — try the AI copilot at <a href="https://dev.weclapp-ai.wals.pro" target="_blank">weclapp-ai.wals.pro</a> (Beta)',
+				displayName: 'Built by <a href="https://wals.pro" target="_blank">Wals-pro</a> — weclapp MCP server for AI assistants: <a href="https://weclapp-mcp.wals.pro" target="_blank">weclapp-mcp.wals.pro</a>',
 				name: 'walsproNotice',
 				type: 'notice',
 				default: '',
