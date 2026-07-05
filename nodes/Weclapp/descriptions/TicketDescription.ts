@@ -1,6 +1,7 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { filtersCollection, returnAllOrLimit, simplifyField } from '../SharedFields';
+import { filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ---------------------------------------------------------------------------
 // Ticket operations
@@ -71,24 +72,30 @@ export const ticketOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/ticket/id/{{$parameter["ticketId"]}}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
-				description: 'List tickets',
-				action: 'List tickets',
+				description: 'Get many tickets',
+				action: 'Get many tickets',
 				routing: {
 					request: {
 						method: 'GET',
 						url: '/ticket',
 					},
+					...listPaginationRouting,
 					output: {
 						postReceive: [
 							{
 								type: 'rootProperty',
 								properties: { property: 'result' },
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -132,36 +139,69 @@ export const ticketOperations: INodeProperties[] = [
 export const ticketFields: INodeProperties[] = [
 	// ── Ticket ID (get / update / delete / markRead / createPerformanceRecord) ──
 	{
-		displayName: 'Ticket ID',
+		displayName: 'Ticket',
 		name: 'ticketId',
-		type: 'string',
+		type: 'resourceLocator',
+		default: { mode: 'list', value: '' },
 		required: true,
-		default: '',
+		description: 'The ticket to operate on',
 		displayOptions: {
 			show: {
 				resource: ['ticket'],
 				operation: ['get', 'update', 'delete', 'markRead', 'createPerformanceRecord'],
 			},
 		},
-		description: 'The ID of the ticket',
+		modes: [
+			{
+				displayName: 'From List',
+				name: 'list',
+				type: 'list',
+				typeOptions: {
+					searchListMethod: 'searchTickets',
+					searchable: true,
+				},
+			},
+			{
+				displayName: 'ID',
+				name: 'id',
+				type: 'string',
+				placeholder: 'e.g. 1234567890',
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '^[0-9]+$',
+							errorMessage: 'Ticket ID must be numeric',
+						},
+					},
+				],
+			},
+			{
+				displayName: 'URL',
+				name: 'url',
+				type: 'string',
+				placeholder: 'e.g. https://tenant.weclapp.com/webapp/api/v2/ticket/id/1234567890',
+				extractValue: {
+					type: 'regex',
+					regex: '/ticket/id/([0-9]+)',
+				},
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '/ticket/id/[0-9]+',
+							errorMessage: 'URL must contain /ticket/id/{id}',
+						},
+					},
+				],
+			},
+		],
 	},
 
-	// ── List: Return All / Limit ──
-	...returnAllOrLimit.map((field) => ({
-		...field,
-		displayOptions: { show: { resource: ['ticket'], operation: ['list'] } },
-	})),
-
-	// ── List: pagination via pageSize query param ──
+	// ── List: Limit ──
 	{
-		displayName: 'Page Size',
-		name: 'pageSize',
-		type: 'hidden',
-		default: 1000,
+		...limitField,
 		displayOptions: { show: { resource: ['ticket'], operation: ['list'] } },
-		routing: {
-			send: { type: 'query', property: 'pageSize', value: '=1000' },
-		},
 	},
 
 	// ── List: Filters ──
@@ -390,24 +430,30 @@ export const commentOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/comment/id/{{$parameter["commentId"]}}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
-				description: 'List comments for an entity',
-				action: 'List comments',
+				description: 'Get many comments for an entity',
+				action: 'Get many comments',
 				routing: {
 					request: {
 						method: 'GET',
 						url: '/comment',
 					},
+					...listPaginationRouting,
 					output: {
 						postReceive: [
 							{
 								type: 'rootProperty',
 								properties: { property: 'result' },
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -546,11 +592,11 @@ export const commentFields: INodeProperties[] = [
 		},
 	},
 
-	// ── List: Return All / Limit ──
-	...returnAllOrLimit.map((field) => ({
-		...field,
+	// ── List: Limit ──
+	{
+		...limitField,
 		displayOptions: { show: { resource: ['comment'], operation: ['list'] } },
-	})),
+	},
 
 	// ── List: Simplify ──
 	{

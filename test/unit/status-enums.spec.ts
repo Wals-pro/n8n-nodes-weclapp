@@ -10,6 +10,7 @@ import { describe, it, expect } from 'vitest';
 
 import { salesInvoiceFields } from '../../nodes/Weclapp/descriptions/SalesInvoiceDescription';
 import { purchaseOrderFields } from '../../nodes/Weclapp/descriptions/PurchaseOrderDescription';
+import { SIMPLIFY_FIELDS } from '../../nodes/Weclapp/GenericFunctions';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -144,23 +145,19 @@ describe('PurchaseOrder supplierId fix', () => {
 		expect(oldField).toBeUndefined();
 	});
 
-	it('simplify mapping uses supplierId, not recipientId', () => {
-		// The simplify field has postReceive with setKeyValue; check it maps supplierId
-		const simplifyField = (
-			purchaseOrderFields as Array<{
-				name: string;
-				routing?: {
-					output?: {
-						postReceive?: Array<{ properties?: Record<string, string> }>;
-					};
-				};
-			}>
-		).find((f) => f.name === 'simplify');
+	it('simplify projection whitelist does not leak recipientId', () => {
+		// Simplify is now driven by the shared SIMPLIFY_FIELDS whitelist +
+		// simplifyPostReceive (no inline per-field routing map). The purchaseOrder
+		// whitelist must not carry the renamed-away recipientId field.
+		expect(SIMPLIFY_FIELDS['purchaseOrder']).toBeDefined();
+		expect(SIMPLIFY_FIELDS['purchaseOrder']).not.toContain('recipientId');
+
+		// The simplify toggle exists and delegates to the shared simplifyPostReceive
+		// hook on the get + list ops rather than an inline recipientId/supplierId map.
+		const simplifyField = (purchaseOrderFields as Array<{ name: string }>).find(
+			(f) => f.name === 'simplify',
+		);
 		expect(simplifyField).toBeDefined();
-		const props = simplifyField?.routing?.output?.postReceive?.[0]?.properties;
-		expect(props).toBeDefined();
-		expect(props?.['supplierId']).toBeDefined();
-		expect(props?.['recipientId']).toBeUndefined();
 	});
 });
 

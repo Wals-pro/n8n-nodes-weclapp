@@ -226,8 +226,8 @@ describe('loadOptions.getWarehouses', () => {
 
 		expect(mockApiRequestAllItems).toHaveBeenCalledWith('GET', '/warehouse');
 		expect(result).toEqual([
-			{ name: 'Main Warehouse', value: 'w1' },
-			{ name: 'Secondary Warehouse', value: 'w2' },
+			{ name: 'Main Warehouse (w1)', value: 'w1' },
+			{ name: 'Secondary Warehouse (w2)', value: 'w2' },
 		]);
 	});
 });
@@ -246,8 +246,8 @@ describe('loadOptions.getCurrencies', () => {
 
 		expect(mockApiRequest).toHaveBeenCalledWith('GET', '/currency', undefined, { pageSize: 1000 });
 		expect(result).toEqual([
-			{ name: 'EUR', value: 'c1' },
-			{ name: 'USD', value: 'c2' },
+			{ name: 'EUR (c1)', value: 'c1' },
+			{ name: 'USD (c2)', value: 'c2' },
 		]);
 	});
 });
@@ -258,7 +258,7 @@ describe('loadOptions.getPaymentMethods', () => {
 		const ctx = makeCtx();
 		const result = await loadOptions.getPaymentMethods.call(ctx);
 		expect(mockApiRequest.mock.calls[0][1]).toBe('/paymentMethod');
-		expect(result[0]).toEqual({ name: 'Bank Transfer', value: 'pm1' });
+		expect(result[0]).toEqual({ name: 'Bank Transfer (pm1)', value: 'pm1' });
 	});
 });
 
@@ -268,7 +268,7 @@ describe('loadOptions.getTermsOfPayment', () => {
 		const ctx = makeCtx();
 		const result = await loadOptions.getTermsOfPayment.call(ctx);
 		expect(mockApiRequest.mock.calls[0][1]).toBe('/termOfPayment');
-		expect(result[0]).toEqual({ name: '30 days net', value: 'tp1' });
+		expect(result[0]).toEqual({ name: '30 days net (tp1)', value: 'tp1' });
 	});
 });
 
@@ -278,7 +278,7 @@ describe('loadOptions.getTags', () => {
 		const ctx = makeCtx();
 		const result = await loadOptions.getTags.call(ctx);
 		expect(mockApiRequest.mock.calls[0][1]).toBe('/tag');
-		expect(result[0]).toEqual({ name: 'VIP', value: 't1' });
+		expect(result[0]).toEqual({ name: 'VIP (t1)', value: 't1' });
 	});
 });
 
@@ -296,7 +296,7 @@ describe('loadOptions.getUsers', () => {
 		const qs = mockApiRequest.mock.calls[0][3] as Record<string, unknown>;
 		expect(qs['active-eq']).toBe('true');
 		expect(mockApiRequest.mock.calls[0][1]).toBe('/user');
-		expect(result[0]).toEqual({ name: 'Max Mustermann', value: 'u1' });
+		expect(result[0]).toEqual({ name: 'Max Mustermann (u1)', value: 'u1' });
 	});
 
 	it('falls back to username when firstName/lastName absent', async () => {
@@ -305,7 +305,7 @@ describe('loadOptions.getUsers', () => {
 		});
 		const ctx = makeCtx();
 		const result = await loadOptions.getUsers.call(ctx);
-		expect(result[0].name).toBe('admin');
+		expect(result[0].name).toBe('admin (u2)');
 	});
 });
 
@@ -315,7 +315,7 @@ describe('loadOptions.getUnits', () => {
 		const ctx = makeCtx();
 		const result = await loadOptions.getUnits.call(ctx);
 		expect(mockApiRequest.mock.calls[0][1]).toBe('/unit');
-		expect(result[0]).toEqual({ name: 'Stück', value: 'un1' });
+		expect(result[0]).toEqual({ name: 'Stück (un1)', value: 'un1' });
 	});
 });
 
@@ -334,9 +334,9 @@ describe('loadOptions.getTicketStatuses', () => {
 
 		expect(mockApiRequest).toHaveBeenCalledWith('GET', '/ticketStatus', undefined, { pageSize: 1000 });
 		expect(result).toEqual([
-			{ name: 'Open', value: 'ts1' },
-			{ name: 'In Progress', value: 'ts2' },
-			{ name: 'Closed', value: 'ts3' },
+			{ name: 'Open (ts1)', value: 'ts1' },
+			{ name: 'In Progress (ts2)', value: 'ts2' },
+			{ name: 'Closed (ts3)', value: 'ts3' },
 		]);
 	});
 });

@@ -1,6 +1,7 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { filtersCollection, returnAllOrLimit, simplifyField } from '../SharedFields';
+import { filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Operation selector
@@ -245,6 +246,9 @@ export const quotationOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/quotation/id/{{$parameter["quotationId"]}}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
@@ -270,15 +274,16 @@ export const quotationOperations: INodeProperties[] = [
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
 				description: 'Retrieve a list of quotations',
-				action: 'List quotations',
+				action: 'Get many quotations',
 				routing: {
 					request: {
 						method: 'GET',
 						url: '/quotation',
 					},
+					...listPaginationRouting,
 					output: {
 						postReceive: [
 							{
@@ -287,6 +292,8 @@ export const quotationOperations: INodeProperties[] = [
 									property: 'result',
 								},
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -455,12 +462,12 @@ export const quotationFields: INodeProperties[] = [
 	// ── Quotation ID (required for all single-record operations) ─────────────
 
 	{
-		displayName: 'Quotation ID',
+		displayName: 'Quotation',
 		name: 'quotationId',
-		type: 'string',
+		type: 'resourceLocator',
+		default: { mode: 'list', value: '' },
 		required: true,
-		default: '',
-		description: 'The ID of the quotation to operate on',
+		description: 'The quotation to operate on',
 		displayOptions: {
 			show: {
 				resource: ['quotation'],
@@ -487,59 +494,61 @@ export const quotationFields: INodeProperties[] = [
 				],
 			},
 		},
-	},
-
-	// ── List: Return All / Limit ──────────────────────────────────────────────
-
-	{
-		...returnAllOrLimit[0],
-		displayOptions: {
-			show: {
-				resource: ['quotation'],
-				operation: ['list'],
-			},
-		},
-	},
-	{
-		...returnAllOrLimit[1],
-		displayOptions: {
-			show: {
-				resource: ['quotation'],
-				operation: ['list'],
-				returnAll: [false],
-			},
-		},
-		routing: {
-			request: {
-				qs: {
-					pageSize: '={{$value}}',
+		modes: [
+			{
+				displayName: 'From List',
+				name: 'list',
+				type: 'list',
+				typeOptions: {
+					searchListMethod: 'searchQuotations',
+					searchable: true,
 				},
 			},
-		},
+			{
+				displayName: 'By ID',
+				name: 'id',
+				type: 'string',
+				placeholder: 'e.g. 1234567890',
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '^[0-9]+$',
+							errorMessage: 'Quotation ID must be numeric',
+						},
+					},
+				],
+			},
+			{
+				displayName: 'By URL',
+				name: 'url',
+				type: 'string',
+				placeholder: 'e.g. https://tenant.weclapp.com/webapp/api/v2/quotation/id/1234567890',
+				extractValue: {
+					type: 'regex',
+					regex: '/quotation/id/([0-9]+)',
+				},
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '/quotation/id/[0-9]+',
+							errorMessage: 'URL must contain /quotation/id/{id}',
+						},
+					},
+				],
+			},
+		],
 	},
 
-	// ── List: Pagination (return all mode) ───────────────────────────────────
+	// ── List: Limit ───────────────────────────────────────────────────────────
 
 	{
-		displayName: 'Page Size',
-		name: 'pageSize',
-		type: 'hidden',
-		default: 1000,
+		...limitField,
 		displayOptions: {
 			show: {
 				resource: ['quotation'],
 				operation: ['list'],
-				returnAll: [true],
-			},
-		},
-		routing: {
-			request: {
-				qs: {
-					pageSize: 1000,
-				},
-			},
-			send: {
-				paginate: true,
 			},
 		},
 	},

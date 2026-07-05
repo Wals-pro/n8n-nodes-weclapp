@@ -1,6 +1,7 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, returnAllOrLimit, simplifyField } from '../SharedFields';
+import { additionalFields, filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ---------------------------------------------------------------------------
 // Shipment Operations
@@ -41,6 +42,9 @@ export const shipmentOperations: INodeProperties[] = [
 						url: '=/shipment/id/{{$parameter["shipmentId"]}}/createPickingList',
 						encoding: 'arraybuffer',
 						returnFullResponse: true,
+						// body as string '{}' forces axios to send Content-Length: 2
+						// (empty object body {} is stripped by isObjectEmpty check in convertN8nRequestToAxios)
+						body: '{}',
 					},
 					output: {
 						postReceive: [
@@ -63,6 +67,7 @@ export const shipmentOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/shipment/id/{{$parameter["shipmentId"]}}/createReturnLabels',
+						body: '{}',
 					},
 					output: {
 						postReceive: [
@@ -85,6 +90,7 @@ export const shipmentOperations: INodeProperties[] = [
 					request: {
 						method: 'POST',
 						url: '=/shipment/id/{{$parameter["shipmentId"]}}/createSalesInvoice',
+						body: '{}',
 					},
 					output: {
 						postReceive: [
@@ -224,14 +230,18 @@ export const shipmentOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/shipment/id/{{$parameter["shipmentId"]}}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
 				description: 'Return a list of shipments',
-				action: 'List shipments',
+				action: 'Get many shipments',
 				routing: {
+					...listPaginationRouting,
 					request: {
 						method: 'GET',
 						url: '/shipment',
@@ -244,6 +254,8 @@ export const shipmentOperations: INodeProperties[] = [
 									property: 'result',
 								},
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -297,14 +309,14 @@ export const shipmentOperations: INodeProperties[] = [
 // ---------------------------------------------------------------------------
 
 export const shipmentFields: INodeProperties[] = [
-	// ── Shared: Shipment ID ────────────────────────────────────────────────
+	// ── Shared: Shipment resource locator ──────────────────────────────────
 	{
-		displayName: 'Shipment ID',
+		displayName: 'Shipment',
 		name: 'shipmentId',
-		type: 'string',
+		type: 'resourceLocator',
+		default: { mode: 'list', value: '' },
 		required: true,
-		default: '',
-		description: 'The unique ID of the shipment',
+		description: 'The shipment to operate on',
 		displayOptions: {
 			show: {
 				resource: ['shipment'],
@@ -323,39 +335,60 @@ export const shipmentFields: INodeProperties[] = [
 				],
 			},
 		},
+		modes: [
+			{
+				displayName: 'From List',
+				name: 'list',
+				type: 'list',
+				typeOptions: {
+					searchListMethod: 'searchShipments',
+					searchable: true,
+				},
+			},
+			{
+				displayName: 'By ID',
+				name: 'id',
+				type: 'string',
+				placeholder: 'e.g. 1234567890',
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '^[0-9]+$',
+							errorMessage: 'Shipment ID must be numeric',
+						},
+					},
+				],
+			},
+			{
+				displayName: 'By URL',
+				name: 'url',
+				type: 'string',
+				placeholder: 'e.g. https://tenant.weclapp.com/webapp/api/v2/shipment/id/1234567890',
+				extractValue: {
+					type: 'regex',
+					regex: '/shipment/id/([0-9]+)',
+				},
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '/shipment/id/[0-9]+',
+							errorMessage: 'URL must contain /shipment/id/{id}',
+						},
+					},
+				],
+			},
+		],
 	},
 
-	// ── List: Return All / Limit ───────────────────────────────────────────
+	// ── List: Limit ────────────────────────────────────────────────────────
 	{
-		...returnAllOrLimit[0],
+		...limitField,
 		displayOptions: {
 			show: {
 				resource: ['shipment'],
 				operation: ['list'],
-			},
-		},
-		routing: {
-			request: {
-				qs: {
-					pageSize: 1000,
-				},
-			},
-		},
-	},
-	{
-		...returnAllOrLimit[1],
-		displayOptions: {
-			show: {
-				resource: ['shipment'],
-				operation: ['list'],
-				returnAll: [false],
-			},
-		},
-		routing: {
-			request: {
-				qs: {
-					pageSize: '={{ $value }}',
-				},
 			},
 		},
 	},

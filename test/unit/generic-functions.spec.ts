@@ -1,11 +1,18 @@
 import { describe, it, expect, vi } from 'vitest';
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
+import type {
+	IExecuteSingleFunctions,
+	IN8nHttpFullResponse,
+	INodeExecutionData,
+} from 'n8n-workflow';
+
 import {
 	buildFilterParams,
 	parseApiProblem,
 	resolveWeclappUrl,
 	simplifyEntity,
+	simplifyPostReceive,
 	weclappApiRequest,
 	weclappApiRequestAllItems,
 	type WeclappFilterItem,
@@ -175,9 +182,14 @@ describe('buildFilterParams', () => {
 		expect(params['id-notin']).toBe('[1,2]');
 	});
 
-	it('passes CSV string through unchanged for "in"', () => {
+	it('wraps a CSV string into a JSON array for "in"', () => {
 		const params = buildFilterParams([{ field: 'tag', operator: 'in', value: 'a,b,c' }]);
-		expect(params['tag-in']).toBe('a,b,c');
+		expect(params['tag-in']).toBe('["a","b","c"]');
+	});
+
+	it('passes an existing JSON array literal through unchanged for "in"', () => {
+		const params = buildFilterParams([{ field: 'tag', operator: 'in', value: '["a","b"]' }]);
+		expect(params['tag-in']).toBe('["a","b"]');
 	});
 
 	// ---- null / notnull omit value ----
@@ -457,6 +469,99 @@ describe('simplifyEntity', () => {
 		expect(simplified.name).toBe('Widget');
 		// Fields not on the entity shouldn't appear as keys.
 		expect(Object.prototype.hasOwnProperty.call(simplified, 'unitId')).toBe(false);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// simplifyPostReceive (postReceive action wiring the Simplify toggle)
+// ---------------------------------------------------------------------------
+
+describe('simplifyPostReceive', () => {
+	const RESPONSE = { body: {}, headers: {}, statusCode: 200 } as IN8nHttpFullResponse;
+
+	/** Context whose getNodeParameter returns the given simplify + resource values. */
+	function makeSimplifyCtx(simplify: boolean, resource: string) {
+		return {
+			getNodeParameter(name: string, fallback?: unknown) {
+				if (name === 'simplify') return simplify;
+				if (name === 'resource') return resource;
+				return fallback;
+			},
+		} as unknown as IExecuteSingleFunctions;
+	}
+
+	it('trims each row to the resource whitelist when simplify = true', async () => {
+		const items: INodeExecutionData[] = [
+			{
+				json: {
+					id: '1',
+					articleNumber: 'A001',
+					name: 'Widget',
+					articleType: 'STORABLE_ARTICLE',
+					active: true,
+					unitId: '42',
+					version: '3',
+					longDescription: 'noise that should be stripped',
+				},
+			},
+		];
+
+		const result = await simplifyPostReceive.call(makeSimplifyCtx(true, 'article'), items, RESPONSE);
+
+		expect(Object.keys(result[0].json)).toEqual([
+			'id',
+			'articleNumber',
+			'name',
+			'articleType',
+			'active',
+			'unitId',
+			'version',
+		]);
+		expect(result[0].json.longDescription).toBeUndefined();
+	});
+
+	it('passes items through unchanged when simplify = false', async () => {
+		const items: INodeExecutionData[] = [{ json: { id: '1', foo: 'bar', baz: 42 } }];
+
+		const result = await simplifyPostReceive.call(makeSimplifyCtx(false, 'article'), items, RESPONSE);
+
+		expect(result).toBe(items);
+		expect(result[0].json).toEqual({ id: '1', foo: 'bar', baz: 42 });
+	});
+
+	it('passes each row through unchanged for an unknown resource even when simplify = true', async () => {
+		const items: INodeExecutionData[] = [{ json: { id: '99', foo: 'bar', baz: 42 } }];
+
+		const result = await simplifyPostReceive.call(
+			makeSimplifyCtx(true, 'unknownResource'),
+			items,
+			RESPONSE,
+		);
+
+		expect(result[0].json).toEqual({ id: '99', foo: 'bar', baz: 42 });
+	});
+
+	it('simplifies newly-whitelisted resources (e.g. quotation)', async () => {
+		const items: INodeExecutionData[] = [
+			{
+				json: {
+					id: '5',
+					quotationNumber: 'Q-100',
+					status: 'ORDER_CONFIRMATION_PRINTED',
+					version: '2',
+					statusHistory: [{ status: 'x' }],
+				},
+			},
+		];
+
+		const result = await simplifyPostReceive.call(
+			makeSimplifyCtx(true, 'quotation'),
+			items,
+			RESPONSE,
+		);
+
+		expect(Object.keys(result[0].json)).toEqual(['id', 'quotationNumber', 'status', 'version']);
+		expect(result[0].json.statusHistory).toBeUndefined();
 	});
 });
 

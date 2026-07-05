@@ -2,6 +2,7 @@ import type { IDataObject, IExecuteFunctions, INodeExecutionData, INodeType, INo
 
 import { resources } from './descriptions/index';
 import { loadOptions, listSearch } from './methods/loadOptions';
+import { getCustomAttributeFields } from './methods/customAttributes';
 import { executeApplyPayment } from './actions/applyPayment';
 import { executeUpdatePrices } from './actions/articlePriceSync';
 import { executeCustomApiCall } from './descriptions/CustomApiDescription';
@@ -157,6 +158,9 @@ export class Weclapp implements INodeType {
 	methods = {
 		loadOptions,
 		listSearch,
+		resourceMapping: {
+			getCustomAttributeFields,
+		},
 	};
 
 	/**

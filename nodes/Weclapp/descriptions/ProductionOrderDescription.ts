@@ -1,6 +1,7 @@
 import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, returnAllOrLimit, simplifyField } from '../SharedFields';
+import { additionalFields, filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ---------------------------------------------------------------------------
 // Shared constants
@@ -55,6 +56,7 @@ export const productionOrderOperations: INodeProperties[] = [
 						url: '=/productionOrder/id/{{$parameter["productionOrderId"]}}/createPickingList',
 						encoding: 'arraybuffer',
 						returnFullResponse: true,
+						body: '{}',
 					},
 					output: {
 						postReceive: [
@@ -146,18 +148,22 @@ export const productionOrderOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/productionOrder/id/{{$parameter["productionOrderId"]}}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
 				description: 'Return a list of production orders',
-				action: 'List production orders',
+				action: 'Get many production orders',
 				routing: {
 					request: {
 						method: 'GET',
 						url: '/productionOrder',
 					},
+					...listPaginationRouting,
 					output: {
 						postReceive: [
 							{
@@ -166,6 +172,8 @@ export const productionOrderOperations: INodeProperties[] = [
 									property: 'result',
 								},
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -200,7 +208,7 @@ export const productionOrderFields: INodeProperties[] = [
 		displayName: 'Production Order',
 		name: 'productionOrderId',
 		type: 'resourceLocator',
-		default: { mode: 'id', value: '' },
+		default: { mode: 'list', value: '' },
 		required: true,
 		description: 'The production order to operate on',
 		displayOptions: {
@@ -236,7 +244,7 @@ export const productionOrderFields: INodeProperties[] = [
 				name: 'list',
 				type: 'list',
 				typeOptions: {
-					searchListMethod: 'getProductionOrders',
+					searchListMethod: 'searchProductionOrders',
 					searchable: true,
 				},
 			},
@@ -262,37 +270,13 @@ export const productionOrderFields: INodeProperties[] = [
 		],
 	},
 
-	// ── List: Return All / Limit ───────────────────────────────────────────
+	// ── List: Limit ────────────────────────────────────────────────────────
 	{
-		...returnAllOrLimit[0],
+		...limitField,
 		displayOptions: {
 			show: {
 				resource: ['productionOrder'],
 				operation: ['list'],
-			},
-		},
-		routing: {
-			request: {
-				qs: {
-					pageSize: '={{ $value ? 1000 : undefined }}',
-				},
-			},
-		},
-	},
-	{
-		...returnAllOrLimit[1],
-		displayOptions: {
-			show: {
-				resource: ['productionOrder'],
-				operation: ['list'],
-				returnAll: [false],
-			},
-		},
-		routing: {
-			request: {
-				qs: {
-					pageSize: '={{ $value }}',
-				},
 			},
 		},
 	},

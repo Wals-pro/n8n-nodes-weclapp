@@ -1,8 +1,10 @@
 import type {
 	IDataObject,
 	IExecuteFunctions,
+	IExecuteSingleFunctions,
 	IHookFunctions,
 	IHttpRequestMethods,
+	IN8nHttpFullResponse,
 	ILoadOptionsFunctions,
 	INode,
 	INodeExecutionData,
@@ -44,8 +46,15 @@ const VALID_OPERATORS = new Set([
 	'notin',
 ]);
 
-/** Fields kept per resource when simplify = true. */
-const SIMPLIFY_FIELDS: Record<string, string[]> = {
+/**
+ * Fields kept per resource when simplify = true.
+ *
+ * Whitelists follow the official-node convention: id + the main number field +
+ * a human-readable name/subject + a status + the optimistic-lock `version`.
+ * Field names are the weclapp REST response property names (verified against the
+ * weclapp OpenAPI schemas). Resources not listed here pass through unchanged.
+ */
+export const SIMPLIFY_FIELDS: Record<string, string[]> = {
 	article: ['id', 'articleNumber', 'name', 'articleType', 'active', 'unitId', 'version'],
 	party: ['id', 'partyNumber', 'name', 'firstName', 'lastName', 'partyType', 'active', 'version'],
 	salesOrder: [
@@ -58,6 +67,25 @@ const SIMPLIFY_FIELDS: Record<string, string[]> = {
 		'grossAmount',
 		'version',
 	],
+	salesInvoice: ['id', 'invoiceNumber', 'status', 'paymentStatus', 'salesInvoiceType', 'version'],
+	purchaseInvoice: ['id', 'invoiceNumber', 'status', 'paymentStatus', 'version'],
+	purchaseOrder: ['id', 'purchaseOrderNumber', 'status', 'version'],
+	quotation: ['id', 'quotationNumber', 'status', 'version'],
+	shipment: ['id', 'shipmentNumber', 'shipmentType', 'deliveryDate', 'version'],
+	ticket: ['id', 'ticketNumber', 'subject', 'ticketStatusId', 'version'],
+	productionOrder: ['id', 'productionOrderNumber', 'status', 'version'],
+	document: ['id', 'name', 'description', 'entityName', 'version'],
+	warehouse: ['id', 'name', 'active', 'version'],
+	warehouseStock: ['id', 'articleId', 'warehouseId', 'quantity', 'version'],
+	warehouseStockMovement: ['id', 'movementNumber', 'articleId', 'quantity', 'version'],
+	bankAccount: ['id', 'accountNumber', 'name', 'active', 'version'],
+	bankTransaction: ['id', 'externalRecordNumber', 'description', 'version'],
+	tag: ['id', 'name', 'version'],
+	unit: ['id', 'name', 'description', 'version'],
+	user: ['id', 'username', 'firstName', 'lastName', 'status', 'version'],
+	webhook: ['id', 'entityName', 'active', 'version'],
+	comment: ['id', 'entityName', 'authorName', 'version'],
+	customAttributeDefinition: ['id', 'attributeKey', 'label', 'attributeType', 'version'],
 };
 
 // ---------------------------------------------------------------------------
@@ -237,12 +265,30 @@ export function buildFilterParams(
 			continue;
 		}
 
-		// `in` / `notin` accept either a JSON array or a raw value; normalise arrays.
+		// `in` / `notin` expect a JSON array. Accept three input forms and
+		// normalise to a JSON array string:
+		//   - a real array            → JSON.stringify
+		//   - an existing JSON array literal ("[...]") → passed through unchanged
+		//   - a comma-separated string ("A,B,C")      → wrapped into ["A","B","C"]
+		// The CSV convenience means users can type `OPEN,CLOSED` instead of
+		// hand-writing `["OPEN","CLOSED"]`.
 		if (op === 'in' || op === 'notin') {
 			if (Array.isArray(filter.value)) {
 				params[key] = JSON.stringify(filter.value);
 			} else {
-				params[key] = String(filter.value ?? '');
+				const raw = String(filter.value ?? '').trim();
+				if (raw.startsWith('[')) {
+					// Already a JSON array literal — trust the user's input.
+					params[key] = raw;
+				} else if (raw.length > 0) {
+					const values = raw
+						.split(',')
+						.map((token) => token.trim())
+						.filter((token) => token.length > 0);
+					params[key] = JSON.stringify(values);
+				} else {
+					params[key] = '';
+				}
 			}
 			continue;
 		}
@@ -364,6 +410,97 @@ export function simplifyEntity(entity: IDataObject, resource: string): IDataObje
 		}
 	}
 	return simplified;
+}
+
+/**
+ * postReceive action that applies `simplifyEntity` to each row when the node's
+ * `Simplify` toggle is on.
+ *
+ * Wires up the previously no-op `simplifyField`: reads `this.getNodeParameter('simplify')`
+ * (default false, so it is safe to attach even to ops without a Simplify toggle) and,
+ * when true, maps every `item.json` through `simplifyEntity(json, resource)` using the
+ * current `resource` parameter. Unknown resources pass through unchanged (see
+ * simplifyEntity). No-op when simplify is false — items are returned untouched.
+ *
+ * Attach as the LAST postReceive step (after rootProperty / mergeAdditionalProperties)
+ * so it projects the fully-assembled row:
+ *   output: { postReceive: [ rootProperty, mergeAdditionalProperties, simplifyPostReceive ] }
+ */
+export async function simplifyPostReceive(
+	this: IExecuteSingleFunctions,
+	items: INodeExecutionData[],
+	_response: IN8nHttpFullResponse,
+): Promise<INodeExecutionData[]> {
+	const simplify = this.getNodeParameter('simplify', false) as boolean;
+	if (!simplify) {
+		return items;
+	}
+
+	const resource = this.getNodeParameter('resource') as string;
+
+	return items.map((item) => ({
+		...item,
+		json: simplifyEntity(item.json as IDataObject, resource),
+	}));
+}
+
+// ---------------------------------------------------------------------------
+// postReceive: merge additionalProperties onto rows
+// ---------------------------------------------------------------------------
+
+/**
+ * postReceive action that merges weclapp's index-aligned `additionalProperties`
+ * response block onto each output row.
+ *
+ * weclapp returns extra computed data (e.g. shipment `availability`) as a
+ * SIBLING of `result`, index-aligned to it:
+ *
+ *   { result: [ {id:'1'}, {id:'2'} ],
+ *     additionalProperties: { availability: [ {stock:5}, {stock:0} ] } }
+ *
+ * Without this, `additionalProperties` is lost when `rootProperty: 'result'`
+ * unwraps the list. This action reads the ORIGINAL full response (postReceive
+ * actions always receive the untouched `response`, even after rootProperty ran)
+ * and attaches `row.additionalProperties = { <name>: values[i] }` to each item.
+ *
+ * No-op when the response carries no `additionalProperties` block, so it is
+ * safe to attach to every list op.
+ *
+ * Attach AFTER the rootProperty step:
+ *   output: { postReceive: [ { type:'rootProperty', properties:{ property:'result' } }, mergeAdditionalProperties ] }
+ */
+export async function mergeAdditionalProperties(
+	this: IExecuteSingleFunctions,
+	items: INodeExecutionData[],
+	response: IN8nHttpFullResponse,
+): Promise<INodeExecutionData[]> {
+	const body = response?.body as IDataObject | undefined;
+	const additional = body?.additionalProperties as Record<string, unknown[]> | undefined;
+
+	if (!additional || typeof additional !== 'object' || Array.isArray(additional)) {
+		return items;
+	}
+
+	return items.map((item, index) => {
+		const merged: IDataObject = {};
+		for (const [name, values] of Object.entries(additional)) {
+			if (Array.isArray(values)) {
+				merged[name] = values[index] as IDataObject[keyof IDataObject];
+			}
+		}
+
+		if (Object.keys(merged).length === 0) {
+			return item;
+		}
+
+		return {
+			...item,
+			json: {
+				...item.json,
+				additionalProperties: merged,
+			},
+		};
+	});
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, returnAllOrLimit, simplifyField } from '../SharedFields';
+import { additionalFields, customAttributesField, filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ─── Shared constants ─────────────────────────────────────────────────────────
 
@@ -185,18 +186,24 @@ const partyOperations: INodeProperties[] = [
 				action: 'Get a party',
 				routing: {
 					request: { method: 'GET', url: '=/party/id/{{$parameter["partyId"]}}' },
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
-				description: 'List and filter parties',
-				action: 'List parties',
+				description: 'Get many parties',
+				action: 'Get many parties',
 				routing: {
-					request: { method: 'GET', url: '/party', qs: { pageSize: 1000 } },
+					...listPaginationRouting,
+					request: { method: 'GET', url: '/party' },
 					output: {
 						postReceive: [
 							{ type: 'rootProperty', properties: { property: 'result' } },
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -234,18 +241,63 @@ const partyOperations: INodeProperties[] = [
 // ─── Fields ───────────────────────────────────────────────────────────────────
 
 const partyIdField: INodeProperties = {
-	displayName: 'Party ID',
+	displayName: 'Party',
 	name: 'partyId',
-	type: 'string',
+	type: 'resourceLocator',
+	default: { mode: 'list', value: '' },
 	required: true,
-	default: '',
-	description: 'The ID of the party to operate on',
+	description: 'The party to operate on',
 	displayOptions: {
 		show: {
 			resource: ['party'],
 			operation: ['get', 'update', 'delete', 'createPublicPage', 'downloadImage', 'uploadImage'],
 		},
 	},
+	modes: [
+		{
+			displayName: 'From List',
+			name: 'list',
+			type: 'list',
+			typeOptions: {
+				searchListMethod: 'searchParties',
+				searchable: true,
+			},
+		},
+		{
+			displayName: 'By ID',
+			name: 'id',
+			type: 'string',
+			placeholder: 'e.g. 1234567890',
+			validation: [
+				{
+					type: 'regex',
+					properties: {
+						regex: '^[0-9]+$',
+						errorMessage: 'Party ID must be numeric',
+					},
+				},
+			],
+		},
+		{
+			displayName: 'By URL',
+			name: 'url',
+			type: 'string',
+			placeholder: 'e.g. https://tenant.weclapp.com/webapp/api/v2/party/id/1234567890',
+			extractValue: {
+				type: 'regex',
+				regex: '/party/id/([0-9]+)',
+			},
+			validation: [
+				{
+					type: 'regex',
+					properties: {
+						regex: '/party/id/[0-9]+',
+						errorMessage: 'URL must contain /party/id/{id}',
+					},
+				},
+			],
+		},
+	],
 };
 
 const partyTypeFilterField: INodeProperties = {
@@ -267,10 +319,10 @@ const partyTypeFilterField: INodeProperties = {
 	},
 };
 
-const listReturnAllOrLimit: INodeProperties[] = returnAllOrLimit.map((field) => ({
-	...field,
+const listLimit: INodeProperties = {
+	...limitField,
 	displayOptions: { show: { resource: ['party'], operation: ['list'] } },
-}));
+};
 
 const listFilters: INodeProperties = {
 	...filtersCollection,
@@ -282,9 +334,6 @@ const listFilters: INodeProperties = {
 const listSimplify: INodeProperties = {
 	...simplifyField,
 	displayOptions: { show: { resource: ['party'], operation: ['list', 'get'] } },
-	description: 'Reserved for future use — currently returns full entity shape.',
-	// NOTE: The broken type:'filter' postReceive was removed in #61. A correct
-	// type:'set' property-projection implementation is tracked for v0.3.0.
 };
 
 const getAdditionalFields: INodeProperties = {
@@ -352,6 +401,11 @@ const downloadImageOptions: INodeProperties = {
 	],
 };
 
+const customAttributes: INodeProperties = {
+	...customAttributesField,
+	displayOptions: { show: { resource: ['party'], operation: ['create', 'update'] } },
+};
+
 const uploadImageField: INodeProperties = {
 	displayName: 'Binary Property',
 	name: 'binaryPropertyName',
@@ -368,12 +422,13 @@ export const partyDescription: INodeProperties[] = [
 	...partyOperations,
 	partyIdField,
 	partyTypeFilterField,
-	...listReturnAllOrLimit,
+	listLimit,
 	listFilters,
 	listSimplify,
 	getAdditionalFields,
 	createFields,
 	updateFields,
+	customAttributes,
 	downloadImageOptions,
 	uploadImageField,
 ];

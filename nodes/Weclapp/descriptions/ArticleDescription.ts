@@ -1,6 +1,7 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, returnAllOrLimit, simplifyField } from '../SharedFields';
+import { additionalFields, customAttributesField, filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ─── Operation selector ──────────────────────────────────────────────────────
 
@@ -169,14 +170,18 @@ export const articleOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/article/id/{{$parameter["articleId"]}}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
 				description: 'Retrieve a list of articles',
-				action: 'List articles',
+				action: 'Get many articles',
 				routing: {
+					...listPaginationRouting,
 					request: {
 						method: 'GET',
 						url: '/article',
@@ -189,6 +194,8 @@ export const articleOperations: INodeProperties[] = [
 									property: 'result',
 								},
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -249,7 +256,7 @@ const articleIdField: INodeProperties = {
 	displayName: 'Article',
 	name: 'articleId',
 	type: 'resourceLocator',
-	default: { mode: 'id', value: '' },
+	default: { mode: 'list', value: '' },
 	required: true,
 	description: 'The article to operate on',
 	displayOptions: {
@@ -291,7 +298,7 @@ const articleIdField: INodeProperties = {
 			name: 'list',
 			type: 'list',
 			typeOptions: {
-				searchListMethod: 'getArticles',
+				searchListMethod: 'searchArticles',
 				searchable: true,
 			},
 		},
@@ -319,29 +326,15 @@ const articleIdField: INodeProperties = {
 
 // ─── List operation fields ────────────────────────────────────────────────────
 
-// returnAllOrLimit[0] = Return All toggle, returnAllOrLimit[1] = Limit (only shown when returnAll=false)
-// Merge the resource+operation guard with the Limit field's existing returnAll guard.
-const listReturnAll: INodeProperties[] = [
-	{
-		...returnAllOrLimit[0],
-		displayOptions: {
-			show: {
-				resource: ['article'],
-				operation: ['list'],
-			},
+const listLimit: INodeProperties = {
+	...limitField,
+	displayOptions: {
+		show: {
+			resource: ['article'],
+			operation: ['list'],
 		},
 	},
-	{
-		...returnAllOrLimit[1],
-		displayOptions: {
-			show: {
-				resource: ['article'],
-				operation: ['list'],
-				returnAll: [false],
-			},
-		},
-	},
-];
+};
 
 const listFilters: INodeProperties = {
 	...filtersCollection,
@@ -746,7 +739,7 @@ export const articleDescription: INodeProperties[] = [
 	...articleOperations,
 	articleIdField,
 	// List
-	...listReturnAll,
+	listLimit,
 	listFilters,
 	listSimplify,
 	listAdditionalFields,
@@ -757,6 +750,11 @@ export const articleDescription: INodeProperties[] = [
 	createAdditionalFields,
 	// Update
 	updateBody,
+	// Create / Update: typed custom attributes
+	{
+		...customAttributesField,
+		displayOptions: { show: { resource: ['article'], operation: ['create', 'update'] } },
+	},
 	// Native actions
 	changeUnitFields,
 	uploadImageFields,

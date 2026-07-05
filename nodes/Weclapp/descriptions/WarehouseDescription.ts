@@ -1,6 +1,7 @@
 import type { IDataObject, IHttpRequestOptions, INodeProperties } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, returnAllOrLimit, simplifyField } from '../SharedFields';
+import { additionalFields, filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 /**
  * preSend hook for warehouse/warehouseStock/warehouseStockMovement list operations.
@@ -127,18 +128,22 @@ export const warehouseOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/warehouse/id/{{$parameter["warehouseId"]}}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
-				description: 'List all warehouses',
-				action: 'List warehouses',
+				description: 'Get many warehouses',
+				action: 'Get many warehouses',
 				routing: {
 					request: {
 						method: 'GET',
 						url: '/warehouse',
 					},
+					...listPaginationRouting,
 					output: {
 						postReceive: [
 							{
@@ -147,6 +152,8 @@ export const warehouseOperations: INodeProperties[] = [
 									property: 'result',
 								},
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -173,18 +180,63 @@ export const warehouseOperations: INodeProperties[] = [
 
 export const warehouseFields: INodeProperties[] = [
 	{
-		displayName: 'Warehouse ID',
+		displayName: 'Warehouse',
 		name: 'warehouseId',
-		type: 'string',
+		type: 'resourceLocator',
+		default: { mode: 'list', value: '' },
 		required: true,
-		default: '',
-		description: 'The ID of the warehouse',
+		description: 'The warehouse to operate on',
 		displayOptions: {
 			show: {
 				resource: ['warehouse'],
 				operation: ['get', 'update', 'delete'],
 			},
 		},
+		modes: [
+			{
+				displayName: 'From List',
+				name: 'list',
+				type: 'list',
+				typeOptions: {
+					searchListMethod: 'searchWarehouses',
+					searchable: true,
+				},
+			},
+			{
+				displayName: 'ID',
+				name: 'id',
+				type: 'string',
+				placeholder: 'e.g. 1234567890',
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '^[0-9]+$',
+							errorMessage: 'Warehouse ID must be numeric',
+						},
+					},
+				],
+			},
+			{
+				displayName: 'URL',
+				name: 'url',
+				type: 'string',
+				placeholder: 'e.g. https://tenant.weclapp.com/webapp/api/v2/warehouse/id/1234567890',
+				extractValue: {
+					type: 'regex',
+					regex: '/warehouse/id/([0-9]+)',
+				},
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '/warehouse/id/[0-9]+',
+							errorMessage: 'URL must contain /warehouse/id/{id}',
+						},
+					},
+				],
+			},
+		],
 	},
 
 	// Required name field for create
@@ -278,23 +330,13 @@ export const warehouseFields: INodeProperties[] = [
 		],
 	},
 
-	// Return All / Limit for list
+	// Limit for list
 	{
-		...returnAllOrLimit[0],
+		...limitField,
 		displayOptions: {
 			show: {
 				resource: ['warehouse'],
 				operation: ['list'],
-			},
-		},
-	},
-	{
-		...returnAllOrLimit[1],
-		displayOptions: {
-			show: {
-				resource: ['warehouse'],
-				operation: ['list'],
-				returnAll: [false],
 			},
 		},
 	},
@@ -374,18 +416,22 @@ export const warehouseStockOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/warehouseStock/id/{{$parameter["stockId"]}}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
-				description: 'List warehouse stock levels',
-				action: 'List warehouse stock',
+				description: 'Get many warehouse stock levels',
+				action: 'Get many warehouse stock',
 				routing: {
 					request: {
 						method: 'GET',
 						url: '/warehouseStock',
 					},
+					...listPaginationRouting,
 					output: {
 						postReceive: [
 							{
@@ -394,6 +440,8 @@ export const warehouseStockOperations: INodeProperties[] = [
 									property: 'result',
 								},
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -420,21 +468,11 @@ export const warehouseStockFields: INodeProperties[] = [
 	},
 
 	{
-		...returnAllOrLimit[0],
+		...limitField,
 		displayOptions: {
 			show: {
 				resource: ['warehouseStock'],
 				operation: ['list'],
-			},
-		},
-	},
-	{
-		...returnAllOrLimit[1],
-		displayOptions: {
-			show: {
-				resource: ['warehouseStock'],
-				operation: ['list'],
-				returnAll: [false],
 			},
 		},
 	},
@@ -576,18 +614,22 @@ export const warehouseStockMovementOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/warehouseStockMovement/id/{{$parameter["movementId"]}}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
-				description: 'List warehouse stock movements',
-				action: 'List warehouse stock movements',
+				description: 'Get many warehouse stock movements',
+				action: 'Get many warehouse stock movements',
 				routing: {
 					request: {
 						method: 'GET',
 						url: '/warehouseStockMovement',
 					},
+					...listPaginationRouting,
 					output: {
 						postReceive: [
 							{
@@ -596,6 +638,8 @@ export const warehouseStockMovementOperations: INodeProperties[] = [
 									property: 'result',
 								},
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -816,21 +860,11 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 	},
 
 	{
-		...returnAllOrLimit[0],
+		...limitField,
 		displayOptions: {
 			show: {
 				resource: ['warehouseStockMovement'],
 				operation: ['list'],
-			},
-		},
-	},
-	{
-		...returnAllOrLimit[1],
-		displayOptions: {
-			show: {
-				resource: ['warehouseStockMovement'],
-				operation: ['list'],
-				returnAll: [false],
 			},
 		},
 	},

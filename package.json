@@ -1,6 +1,9 @@
 {
-	"name": "n8n-nodes-weclapp",
-	"version": "0.1.0",
+	"name": "@wals-pro/n8n-nodes-weclapp",
+	"version": "0.3.0",
+	"publishConfig": {
+		"access": "public"
+	},
 	"description": "n8n community node for the weclapp ERP API — CRUD, actions, binary downloads, webhook trigger",
 	"license": "MIT",
 	"homepage": "https://github.com/Wals-pro/n8n-nodes-weclapp#readme",
@@ -27,6 +30,9 @@
 	},
 	"engines": {
 		"node": ">=20.15"
+	},
+	"publishConfig": {
+		"access": "public"
 	},
 	"scripts": {
 		"build": "n8n-node build",
