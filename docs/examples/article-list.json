@@ -28,7 +28,7 @@
       },
       "id": "a1b2c3d4-0001-0001-0001-000000000002",
       "name": "weclapp — Get Articles",
-      "type": "n8n-nodes-weclapp.weclapp",
+      "type": "@wals-pro/n8n-nodes-weclapp.weclapp",
       "typeVersion": 1,
       "position": [460, 300],
       "credentials": {

@@ -3,9 +3,11 @@ import type { INodeProperties } from 'n8n-workflow';
 import {
 	additionalFields,
 	filtersCollection,
-	returnAllOrLimit,
+	limitField,
+	listPaginationRouting,
 	simplifyField,
 } from '../SharedFields';
+import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 export const purchaseOrderOperations: INodeProperties[] = [
 	{
@@ -253,20 +255,21 @@ export const purchaseOrderOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/purchaseOrder/id/{{$parameter["purchaseOrderId"]}}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
 				description: 'Retrieve a list of purchase orders',
-				action: 'List purchase orders',
+				action: 'Get many purchase orders',
 				routing: {
+					...listPaginationRouting,
 					request: {
 						method: 'GET',
 						url: '/purchaseOrder',
-						qs: {
-							pageSize: 1000,
-						},
 					},
 					output: {
 						postReceive: [
@@ -274,6 +277,8 @@ export const purchaseOrderOperations: INodeProperties[] = [
 								type: 'rootProperty',
 								properties: { property: 'result' },
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -341,14 +346,14 @@ export const purchaseOrderOperations: INodeProperties[] = [
 ];
 
 export const purchaseOrderFields: INodeProperties[] = [
-	// ── Shared: Purchase Order ID (all single-record operations) ────────────
+	// ── Shared: Purchase Order resource locator (all single-record operations) ──
 	{
-		displayName: 'Purchase Order ID',
+		displayName: 'Purchase Order',
 		name: 'purchaseOrderId',
-		type: 'string',
+		type: 'resourceLocator',
+		default: { mode: 'list', value: '' },
 		required: true,
-		default: '',
-		description: 'The unique ID of the purchase order',
+		description: 'The purchase order to operate on',
 		displayOptions: {
 			show: {
 				resource: ['purchaseOrder'],
@@ -370,13 +375,58 @@ export const purchaseOrderFields: INodeProperties[] = [
 				],
 			},
 		},
+		modes: [
+			{
+				displayName: 'From List',
+				name: 'list',
+				type: 'list',
+				typeOptions: {
+					searchListMethod: 'searchPurchaseOrders',
+					searchable: true,
+				},
+			},
+			{
+				displayName: 'By ID',
+				name: 'id',
+				type: 'string',
+				placeholder: 'e.g. 1234567890',
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '^[0-9]+$',
+							errorMessage: 'Purchase Order ID must be numeric',
+						},
+					},
+				],
+			},
+			{
+				displayName: 'By URL',
+				name: 'url',
+				type: 'string',
+				placeholder: 'e.g. https://tenant.weclapp.com/webapp/api/v2/purchaseOrder/id/1234567890',
+				extractValue: {
+					type: 'regex',
+					regex: '/purchaseOrder/id/([0-9]+)',
+				},
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '/purchaseOrder/id/[0-9]+',
+							errorMessage: 'URL must contain /purchaseOrder/id/{id}',
+						},
+					},
+				],
+			},
+		],
 	},
 
-	// ── List: Return All / Limit ─────────────────────────────────────────────
-	...returnAllOrLimit.map((field) => ({
-		...field,
+	// ── List: Limit ──────────────────────────────────────────────────────────
+	{
+		...limitField,
 		displayOptions: { show: { resource: ['purchaseOrder'], operation: ['list'] } },
-	})),
+	},
 
 	// ── List: Filterable fields ──────────────────────────────────────────────
 	{
@@ -488,28 +538,10 @@ export const purchaseOrderFields: INodeProperties[] = [
 	},
 
 	// ── List / Get: Simplify ─────────────────────────────────────────────────
+	// Simplification is wired via simplifyPostReceive on the get + list ops' routing.output.
 	{
 		...simplifyField,
 		displayOptions: { show: { resource: ['purchaseOrder'], operation: ['get', 'list'] } },
-		routing: {
-			output: {
-				postReceive: [
-					{
-						type: 'setKeyValue',
-						enabled: '={{$parameter["simplify"]}}',
-						properties: {
-							id: '={{$responseItem.id}}',
-							orderNumber: '={{$responseItem.orderNumber}}',
-							status: '={{$responseItem.status}}',
-							orderDate: '={{$responseItem.orderDate}}',
-							grossAmount: '={{$responseItem.grossAmount}}',
-							supplierId: '={{$responseItem.supplierId}}',
-							version: '={{$responseItem.version}}',
-						},
-					},
-				],
-			},
-		},
 	},
 
 	// ── List / Get: Additional Fields ────────────────────────────────────────

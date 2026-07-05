@@ -1,6 +1,7 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, returnAllOrLimit, simplifyField } from '../SharedFields';
+import { additionalFields, filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ─── documentType enum values ─────────────────────────────────────────────────
 
@@ -246,18 +247,22 @@ export const documentOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/document/id/{{$parameter["documentId"]}}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
 				description: 'Retrieve a list of documents for an entity',
-				action: 'List documents',
+				action: 'Get many documents',
 				routing: {
 					request: {
 						method: 'GET',
 						url: '/document',
 					},
+					...listPaginationRouting,
 					output: {
 						postReceive: [
 							{
@@ -266,6 +271,8 @@ export const documentOperations: INodeProperties[] = [
 									property: 'result',
 								},
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -337,13 +344,12 @@ export const documentOperations: INodeProperties[] = [
 // ─── Shared: document ID field ────────────────────────────────────────────────
 
 const documentIdField: INodeProperties = {
-	displayName: 'Document ID',
+	displayName: 'Document',
 	name: 'documentId',
-	type: 'string',
+	type: 'resourceLocator',
+	default: { mode: 'list', value: '' },
 	required: true,
-	default: '',
-	description: 'The ID of the document to operate on',
-	placeholder: 'e.g. 1234567890',
+	description: 'The document to operate on',
 	displayOptions: {
 		show: {
 			resource: ['document'],
@@ -359,6 +365,51 @@ const documentIdField: INodeProperties = {
 			],
 		},
 	},
+	modes: [
+		{
+			displayName: 'From List',
+			name: 'list',
+			type: 'list',
+			typeOptions: {
+				searchListMethod: 'searchDocuments',
+				searchable: true,
+			},
+		},
+		{
+			displayName: 'ID',
+			name: 'id',
+			type: 'string',
+			placeholder: 'e.g. 1234567890',
+			validation: [
+				{
+					type: 'regex',
+					properties: {
+						regex: '^[0-9]+$',
+						errorMessage: 'Document ID must be numeric',
+					},
+				},
+			],
+		},
+		{
+			displayName: 'URL',
+			name: 'url',
+			type: 'string',
+			placeholder: 'e.g. https://tenant.weclapp.com/webapp/api/v2/document/id/1234567890',
+			extractValue: {
+				type: 'regex',
+				regex: '/document/id/([0-9]+)',
+			},
+			validation: [
+				{
+					type: 'regex',
+					properties: {
+						regex: '/document/id/[0-9]+',
+						errorMessage: 'URL must contain /document/id/{id}',
+					},
+				},
+			],
+		},
+	],
 };
 
 // ─── Shared: entity context fields ───────────────────────────────────────────
@@ -410,15 +461,15 @@ const listEntityId: INodeProperties = {
 
 // ─── List operation fields ────────────────────────────────────────────────────
 
-const listReturnAll: INodeProperties[] = returnAllOrLimit.map((f) => ({
-	...f,
+const listLimit: INodeProperties = {
+	...limitField,
 	displayOptions: {
 		show: {
 			resource: ['document'],
 			operation: ['list'],
 		},
 	},
-}));
+};
 
 const listFilters: INodeProperties = {
 	...filtersCollection,
@@ -956,7 +1007,7 @@ export const documentDescription: INodeProperties[] = [
 	listEntityName,
 	listEntityId,
 	// List options
-	...listReturnAll,
+	listLimit,
 	listFilters,
 	listSimplify,
 	listAdditionalFields,

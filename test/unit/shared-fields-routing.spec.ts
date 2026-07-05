@@ -1,20 +1,36 @@
 /**
- * Tests for SharedFields routing fixes:
+ * Tests for SharedFields / GenericFunctions routing contract:
  *   #57 — filtersCollection preSend builds correct weclapp query params
  *   #58 — no displayOptions inside collection/fixedCollection children
- *   #29 — limit routes as pageSize query param
+ *   limit UX — single limitField routes as pageSize; listPaginationRouting gates auto-pagination
+ *   B5    — additionalFieldsPreSend sends query projection to the API
+ *   merge — mergeAdditionalProperties folds index-aligned response block onto rows
+ *   in/notin CSV convenience — buildFilterParams normalises value forms
  */
 
 import { describe, it, expect } from 'vitest';
-import type { IHttpRequestOptions, INodeProperties } from 'n8n-workflow';
+import type {
+	IExecuteSingleFunctions,
+	IHttpRequestOptions,
+	IN8nHttpFullResponse,
+	INodeExecutionData,
+	INodeProperties,
+} from 'n8n-workflow';
 
 import {
 	filtersCollection,
 	filtersPreSend,
-	returnAllOrLimit,
 	additionalFields,
+	additionalFieldsPreSend,
+	limitField,
+	listPaginationRouting,
 	paginationConfig,
 } from '../../nodes/Weclapp/SharedFields';
+
+import {
+	buildFilterParams,
+	mergeAdditionalProperties,
+} from '../../nodes/Weclapp/GenericFunctions';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -26,6 +42,7 @@ import {
  */
 function makeCtx(filtersValue: {
 	filter?: Array<{ field: string; operator: string; value?: string }>;
+	rawFilter?: Array<{ expression?: string }>;
 }) {
 	return {
 		getNodeParameter(name: string, fallback?: unknown) {
@@ -188,6 +205,235 @@ describe('filtersPreSend (#57)', () => {
 });
 
 // ---------------------------------------------------------------------------
+// B3 — rawFilter escape hatch (verbatim weclapp filter= expression)
+// ---------------------------------------------------------------------------
+
+describe('rawFilter escape hatch (B3)', () => {
+	it('sends the raw expression verbatim as qs.filter', async () => {
+		const expr = '((shipped = true) or (fulfillmentProviderId null))';
+		const ctx = makeCtx({ rawFilter: [{ expression: expr }] });
+		const result = await filtersPreSend.call(ctx, baseRequest());
+		expect(result.qs?.['filter']).toBe(expr);
+	});
+
+	it('trims surrounding whitespace from the raw expression', async () => {
+		const ctx = makeCtx({ rawFilter: [{ expression: '  status-eq-OPEN  ' }] });
+		const result = await filtersPreSend.call(ctx, baseRequest());
+		expect(result.qs?.['filter']).toBe('status-eq-OPEN');
+	});
+
+	it('uses the first non-empty expression when multiple entries exist', async () => {
+		const ctx = makeCtx({
+			rawFilter: [{ expression: '  ' }, { expression: 'a or b' }, { expression: 'c' }],
+		});
+		const result = await filtersPreSend.call(ctx, baseRequest());
+		expect(result.qs?.['filter']).toBe('a or b');
+	});
+
+	it('does NOT set a filter key when the expression is whitespace-only', async () => {
+		const ctx = makeCtx({ rawFilter: [{ expression: '   ' }] });
+		const req = baseRequest();
+		const result = await filtersPreSend.call(ctx, req);
+		expect(result.qs && 'filter' in result.qs).toBe(false);
+		// no filters at all → request returned unchanged
+		expect(result).toBe(req);
+	});
+
+	it('does NOT set a filter key when rawFilter is empty', async () => {
+		const ctx = makeCtx({ rawFilter: [] });
+		const req = baseRequest();
+		const result = await filtersPreSend.call(ctx, req);
+		expect(result).toBe(req);
+	});
+
+	it('regression guard: field-op filters only → no filter key, still sends field-op params', async () => {
+		const ctx = makeCtx({ filter: [{ field: 'status', operator: 'eq', value: 'OPEN' }] });
+		const result = await filtersPreSend.call(ctx, baseRequest());
+		expect(result.qs?.['status-eq']).toBe('OPEN');
+		expect(result.qs && 'filter' in result.qs).toBe(false);
+	});
+
+	it('both present → field-op params AND raw filter both land in qs', async () => {
+		const ctx = makeCtx({
+			filter: [{ field: 'status', operator: 'eq', value: 'OPEN' }],
+			rawFilter: [{ expression: 'or(a,b)' }],
+		});
+		const result = await filtersPreSend.call(ctx, baseRequest());
+		expect(result.qs?.['status-eq']).toBe('OPEN');
+		expect(result.qs?.['filter']).toBe('or(a,b)');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// B9 — credit-note guard (salesInvoiceType ne CREDIT_NOTE)
+// ---------------------------------------------------------------------------
+
+describe('B9 credit-note guard', () => {
+	it('salesInvoiceType ne CREDIT_NOTE → qs["salesInvoiceType-ne"] === "CREDIT_NOTE"', async () => {
+		const ctx = makeCtx({
+			filter: [{ field: 'salesInvoiceType', operator: 'ne', value: 'CREDIT_NOTE' }],
+		});
+		const result = await filtersPreSend.call(ctx, baseRequest());
+		expect(result.qs?.['salesInvoiceType-ne']).toBe('CREDIT_NOTE');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// in/notin CSV convenience (buildFilterParams)
+// ---------------------------------------------------------------------------
+
+describe('buildFilterParams in/notin CSV convenience', () => {
+	it('wraps a CSV string into a JSON array for in', () => {
+		const params = buildFilterParams([{ field: 'status', operator: 'in', value: 'A,B' }]);
+		expect(params['status-in']).toBe('["A","B"]');
+	});
+
+	it('wraps a CSV string into a JSON array for notin', () => {
+		const params = buildFilterParams([{ field: 'status', operator: 'notin', value: 'A,B' }]);
+		expect(params['status-notin']).toBe('["A","B"]');
+	});
+
+	it('passes an existing JSON array literal through unchanged', () => {
+		const params = buildFilterParams([{ field: 'status', operator: 'in', value: '["X"]' }]);
+		expect(params['status-in']).toBe('["X"]');
+	});
+
+	it('JSON.stringifies a real array value', () => {
+		const params = buildFilterParams([{ field: 'status', operator: 'in', value: ['X', 'Y'] }]);
+		expect(params['status-in']).toBe('["X","Y"]');
+	});
+
+	it('trims whitespace around CSV tokens', () => {
+		const params = buildFilterParams([{ field: 'status', operator: 'in', value: ' A , B ' }]);
+		expect(params['status-in']).toBe('["A","B"]');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// B5 — additionalFieldsPreSend (query projection reaches the API)
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a context whose getNodeParameter('additionalFields') returns the given
+ * projection value. Mirrors makeCtx but for the additionalFields collection.
+ */
+function makeAddCtx(additionalFieldsValue: {
+	properties?: string;
+	includeReferencedEntities?: string;
+	additionalProperties?: string;
+	serializeNulls?: boolean;
+}) {
+	return {
+		getNodeParameter(name: string, fallback?: unknown) {
+			if (name === 'additionalFields') return additionalFieldsValue;
+			return fallback;
+		},
+	};
+}
+
+describe('additionalFieldsPreSend (B5 projection)', () => {
+	it('returns request unchanged when additionalFields is empty', async () => {
+		const ctx = makeAddCtx({});
+		const req = baseRequest();
+		const result = await additionalFieldsPreSend.call(ctx, req);
+		expect(result).toBe(req);
+	});
+
+	it('sends properties projection as the `properties` query param', async () => {
+		const ctx = makeAddCtx({ properties: 'id,shipmentNumber,status' });
+		const result = await additionalFieldsPreSend.call(ctx, baseRequest());
+		expect(result.qs?.['properties']).toBe('id,shipmentNumber,status');
+	});
+
+	it('preserves colon syntax for referenced-entity projections', async () => {
+		const ctx = makeAddCtx({ properties: 'id,salesOrder:id' });
+		const result = await additionalFieldsPreSend.call(ctx, baseRequest());
+		expect(result.qs?.['properties']).toBe('id,salesOrder:id');
+	});
+
+	it('normalizes stray whitespace in the comma list', async () => {
+		const ctx = makeAddCtx({ properties: ' id , salesOrder:id ,  orderNumber ' });
+		const result = await additionalFieldsPreSend.call(ctx, baseRequest());
+		expect(result.qs?.['properties']).toBe('id,salesOrder:id,orderNumber');
+	});
+
+	it('sends includeReferencedEntities', async () => {
+		const ctx = makeAddCtx({ includeReferencedEntities: 'salesOrder,party' });
+		const result = await additionalFieldsPreSend.call(ctx, baseRequest());
+		expect(result.qs?.['includeReferencedEntities']).toBe('salesOrder,party');
+	});
+
+	it('sends additionalProperties CSV-normalized (colons preserved)', async () => {
+		const ctx = makeAddCtx({ additionalProperties: 'availability , salesOrder:id' });
+		const result = await additionalFieldsPreSend.call(ctx, baseRequest());
+		expect(result.qs?.['additionalProperties']).toBe('availability,salesOrder:id');
+	});
+
+	it('sends serializeNulls=true only when explicitly enabled', async () => {
+		const ctx = makeAddCtx({ serializeNulls: true });
+		const result = await additionalFieldsPreSend.call(ctx, baseRequest());
+		expect(result.qs?.['serializeNulls']).toBe(true);
+	});
+
+	it('omits serializeNulls when false (weclapp default)', async () => {
+		const ctx = makeAddCtx({ serializeNulls: false, properties: 'id' });
+		const result = await additionalFieldsPreSend.call(ctx, baseRequest());
+		expect(result.qs && 'serializeNulls' in result.qs).toBe(false);
+		expect(result.qs?.['properties']).toBe('id');
+	});
+
+	it('preserves existing qs entries (e.g. pageSize) when merging', async () => {
+		const ctx = makeAddCtx({ properties: 'id' });
+		const result = await additionalFieldsPreSend.call(ctx, baseRequest({ qs: { pageSize: 1000 } }));
+		expect(result.qs?.['pageSize']).toBe(1000);
+		expect(result.qs?.['properties']).toBe('id');
+	});
+
+	it('additionalFields.routing.send.preSend includes additionalFieldsPreSend', () => {
+		const preSends = additionalFields.routing?.send?.preSend ?? [];
+		expect(preSends).toContain(additionalFieldsPreSend);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// mergeAdditionalProperties (postReceive)
+// ---------------------------------------------------------------------------
+
+function makeResponse(body: unknown): IN8nHttpFullResponse {
+	return { body, headers: {}, statusCode: 200 } as IN8nHttpFullResponse;
+}
+
+describe('mergeAdditionalProperties (postReceive)', () => {
+	const ctx = {} as IExecuteSingleFunctions;
+
+	it('folds index-aligned additionalProperties onto each row', async () => {
+		const items: INodeExecutionData[] = [{ json: { id: '1' } }, { json: { id: '2' } }];
+		const response = makeResponse({
+			result: [{ id: '1' }, { id: '2' }],
+			additionalProperties: { availability: [{ stock: 5 }, { stock: 0 }] },
+		});
+
+		const merged = await mergeAdditionalProperties.call(ctx, items, response);
+
+		expect((merged[0].json.additionalProperties as any).availability.stock).toBe(5);
+		expect((merged[1].json.additionalProperties as any).availability.stock).toBe(0);
+		// original id preserved
+		expect(merged[0].json.id).toBe('1');
+		expect(merged[1].json.id).toBe('2');
+	});
+
+	it('is a no-op when the response has no additionalProperties block', async () => {
+		const items: INodeExecutionData[] = [{ json: { id: '1' } }, { json: { id: '2' } }];
+		const response = makeResponse({ result: [{ id: '1' }, { id: '2' }] });
+
+		const merged = await mergeAdditionalProperties.call(ctx, items, response);
+
+		expect(merged).toBe(items);
+		expect('additionalProperties' in merged[0].json).toBe(false);
+	});
+});
+
+// ---------------------------------------------------------------------------
 // #58 — no displayOptions inside collection / fixedCollection children
 // ---------------------------------------------------------------------------
 
@@ -244,44 +490,45 @@ describe('no displayOptions in collection/fixedCollection children (#58)', () =>
 		const violations = findChildDisplayOptions(additionalFields);
 		expect(violations, `displayOptions found in children: ${violations.join(', ')}`).toHaveLength(0);
 	});
+});
 
-	it('returnAll (returnAllOrLimit[0]) has no child displayOptions — it is a top-level boolean', () => {
-		// returnAll is a boolean, not a collection — no children to check
-		expect(returnAllOrLimit[0].type).toBe('boolean');
+// ---------------------------------------------------------------------------
+// limit UX — single limitField routes as pageSize
+// ---------------------------------------------------------------------------
+
+describe('limitField routing', () => {
+	it('routes send.type = query', () => {
+		expect(limitField.routing?.send?.type).toBe('query');
 	});
 
-	it('limit (returnAllOrLimit[1]) displayOptions.show.returnAll is top-level, not in a collection', () => {
-		// limit is a top-level INodeProperties — displayOptions here is safe
-		// (only displayOptions on children of collection/fixedCollection cause crashes)
-		const limitField = returnAllOrLimit[1];
-		expect(limitField.type).toBe('number');
-		expect(limitField.displayOptions?.show?.['returnAll']).toEqual([false]);
+	it('routes to the pageSize property', () => {
+		expect(limitField.routing?.send?.property).toBe('pageSize');
+	});
+
+	it('routing value expression falls back to 1000 when limit is 0/empty', () => {
+		expect(limitField.routing?.send?.value).toBe('={{ $value > 0 ? $value : 1000 }}');
+	});
+
+	it('defaults to 0 (return all)', () => {
+		expect(limitField.default).toBe(0);
+	});
+
+	it('has minValue 0', () => {
+		expect(limitField.typeOptions?.minValue).toBe(0);
 	});
 });
 
 // ---------------------------------------------------------------------------
-// #29 — limit routes as pageSize query param
+// listPaginationRouting — auto-pagination gate
 // ---------------------------------------------------------------------------
 
-describe('limit routing (#29)', () => {
-	it('limit field has routing.send.type = query', () => {
-		const limitField = returnAllOrLimit[1];
-		expect(limitField.routing?.send?.type).toBe('query');
+describe('listPaginationRouting', () => {
+	it('operations.pagination is paginationConfig', () => {
+		expect(listPaginationRouting.operations?.pagination).toBe(paginationConfig);
 	});
 
-	it('limit field routes to pageSize property', () => {
-		const limitField = returnAllOrLimit[1];
-		expect(limitField.routing?.send?.property).toBe('pageSize');
-	});
-
-	it('limit field routing value is ={{$value}}', () => {
-		const limitField = returnAllOrLimit[1];
-		expect(limitField.routing?.send?.value).toBe('={{$value}}');
-	});
-
-	it('returnAll field has no routing (pagination handled by paginationConfig on list ops)', () => {
-		const returnAllField = returnAllOrLimit[0];
-		expect(returnAllField.routing).toBeUndefined();
+	it('paginate runs only when limit is empty/0', () => {
+		expect(listPaginationRouting.send?.paginate).toBe('={{ !$parameter.limit }}');
 	});
 });
 
@@ -289,7 +536,7 @@ describe('limit routing (#29)', () => {
 // paginationConfig shape
 // ---------------------------------------------------------------------------
 
-describe('paginationConfig (#29)', () => {
+describe('paginationConfig', () => {
 	it('type is offset', () => {
 		expect(paginationConfig.type).toBe('offset');
 	});

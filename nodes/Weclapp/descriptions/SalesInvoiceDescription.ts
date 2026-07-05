@@ -1,6 +1,7 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { filtersCollection, returnAllOrLimit, simplifyField } from '../SharedFields';
+import { customAttributesField, filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ---------------------------------------------------------------------------
 // Operations (alphabetized by name — required by linter)
@@ -174,20 +175,21 @@ export const salesInvoiceOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/salesInvoice/id/{{ $parameter.salesInvoiceId }}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
 				description: 'Retrieve a list of sales invoices',
-				action: 'List sales invoices',
+				action: 'Get many sales invoices',
 				routing: {
+					...listPaginationRouting,
 					request: {
 						method: 'GET',
 						url: '/salesInvoice',
-						qs: {
-							pageSize: 1000,
-						},
 					},
 					output: {
 						postReceive: [
@@ -197,6 +199,8 @@ export const salesInvoiceOperations: INodeProperties[] = [
 									property: 'result',
 								},
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -338,12 +342,12 @@ export const salesInvoiceOperations: INodeProperties[] = [
 // ---------------------------------------------------------------------------
 
 const salesInvoiceIdField: INodeProperties = {
-	displayName: 'Sales Invoice ID',
+	displayName: 'Sales Invoice',
 	name: 'salesInvoiceId',
-	type: 'string',
+	type: 'resourceLocator',
+	default: { mode: 'list', value: '' },
 	required: true,
-	default: '',
-	description: 'The ID of the sales invoice to operate on',
+	description: 'The sales invoice to operate on',
 	displayOptions: {
 		show: {
 			resource: ['salesInvoice'],
@@ -364,6 +368,51 @@ const salesInvoiceIdField: INodeProperties = {
 			],
 		},
 	},
+	modes: [
+		{
+			displayName: 'From List',
+			name: 'list',
+			type: 'list',
+			typeOptions: {
+				searchListMethod: 'searchSalesInvoices',
+				searchable: true,
+			},
+		},
+		{
+			displayName: 'By ID',
+			name: 'id',
+			type: 'string',
+			placeholder: 'e.g. 1234567890',
+			validation: [
+				{
+					type: 'regex',
+					properties: {
+						regex: '^[0-9]+$',
+						errorMessage: 'Sales Invoice ID must be numeric',
+					},
+				},
+			],
+		},
+		{
+			displayName: 'By URL',
+			name: 'url',
+			type: 'string',
+			placeholder: 'e.g. https://tenant.weclapp.com/webapp/api/v2/salesInvoice/id/1234567890',
+			extractValue: {
+				type: 'regex',
+				regex: '/salesInvoice/id/([0-9]+)',
+			},
+			validation: [
+				{
+					type: 'regex',
+					properties: {
+						regex: '/salesInvoice/id/[0-9]+',
+						errorMessage: 'URL must contain /salesInvoice/id/{id}',
+					},
+				},
+			],
+		},
+	],
 };
 
 // ---------------------------------------------------------------------------
@@ -373,31 +422,14 @@ const salesInvoiceIdField: INodeProperties = {
 export const salesInvoiceFields: INodeProperties[] = [
 	salesInvoiceIdField,
 
-	// ── List: returnAll / limit ───────────────────────────────────────────────
+	// ── List: limit ───────────────────────────────────────────────────────────
 
 	{
-		...returnAllOrLimit[0],
+		...limitField,
 		displayOptions: {
 			show: {
 				resource: ['salesInvoice'],
 				operation: ['list'],
-			},
-		},
-	},
-	{
-		...returnAllOrLimit[1],
-		displayOptions: {
-			show: {
-				resource: ['salesInvoice'],
-				operation: ['list'],
-				returnAll: [false],
-			},
-		},
-		routing: {
-			request: {
-				qs: {
-					pageSize: '={{ $value }}',
-				},
 			},
 		},
 	},
@@ -734,6 +766,12 @@ export const salesInvoiceFields: INodeProperties[] = [
 				},
 			},
 		},
+	},
+
+	// ── Create / Update: typed custom attributes ──────────────────────────────
+	{
+		...customAttributesField,
+		displayOptions: { show: { resource: ['salesInvoice'], operation: ['create', 'update'] } },
 	},
 
 	// ── Action: addSalesOrders ────────────────────────────────────────────────

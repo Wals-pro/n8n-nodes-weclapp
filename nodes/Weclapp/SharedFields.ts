@@ -1,6 +1,14 @@
-import type { IHttpRequestOptions, INodeProperties, IN8nRequestOperationPaginationOffset } from 'n8n-workflow';
+import type {
+	IDataObject,
+	IHttpRequestOptions,
+	INodeProperties,
+	INodePropertyRouting,
+	IN8nRequestOperationPaginationOffset,
+	ResourceMapperValue,
+} from 'n8n-workflow';
 
 import { buildFilterParams, type WeclappFilterItem } from './GenericFunctions';
+import { buildWeclappCustomAttributes } from './methods/customAttributes';
 
 /** A single filter entry read from the fixedCollection at runtime. value is absent for null/notnull operators. */
 export type WeclappFilterEntry = { field: string; operator: string; value?: string };
@@ -59,67 +67,229 @@ export async function filtersPreSend(
 	};
 
 	const entries = filtersParam?.filter ?? [];
-	if (entries.length === 0) {
-		return requestOptions;
-	}
 
 	// buildFilterParams validates operators and produces { 'field-op': 'value' }
 	// Cast is safe: WeclappFilterItem.value is `unknown`; our entries have value?: string
 	// which is compatible at runtime (undefined handled as empty string in buildFilterParams).
-	const filterQs = buildFilterParams(entries as WeclappFilterItem[]);
+	const filterQs = entries.length > 0 ? buildFilterParams(entries as WeclappFilterItem[]) : {};
+
+	// B3 rawFilter escape hatch: a verbatim weclapp `filter=` grammar expression
+	// (supports OR/parentheses, e.g. `((shipped = true) or (fulfillmentProviderId null))`).
+	// The first non-empty expression wins and is sent as `qs.filter` untouched (trimmed).
+	// NOTE: mixing rawFilter with field-op filters is NOT additive — both are sent, and
+	// weclapp combines them per its own semantics; prefer one approach per request.
+	const rawFilterParam = this.getNodeParameter('filters', {}) as {
+		rawFilter?: Array<{ expression?: string }>;
+	};
+	const rawExpression = (rawFilterParam?.rawFilter ?? [])
+		.map((entry) => entry?.expression?.trim())
+		.find((expr) => expr && expr.length > 0);
+
+	const rawFilterQs: Record<string, string> = {};
+	if (rawExpression) {
+		rawFilterQs.filter = rawExpression;
+	}
+
+	if (entries.length === 0 && !rawExpression) {
+		return requestOptions;
+	}
 
 	return {
 		...requestOptions,
 		qs: {
 			...(requestOptions.qs ?? {}),
 			...filterQs,
+			...rawFilterQs,
 		},
 	};
 }
 
 // ---------------------------------------------------------------------------
-// returnAllOrLimit
+// preSend: additionalFields (query projection)
 // ---------------------------------------------------------------------------
 
 /**
- * Two-field pair used by every List operation.
- * Spread into a resource descriptor's `properties` array: `...returnAllOrLimit`.
+ * PreSend action for the shared `additionalFields` collection.
  *
- * - returnAll: boolean (no routing — triggers paginationConfig when wired in
- *   resource list op routing; see #29 follow-up)
- * - limit: routes as `pageSize` query param when returnAll = false (#29 fix)
+ * Reads the `additionalFields` collection value and merges its query-level
+ * projection modifiers into requestOptions.qs:
+ *   - properties                → `properties` (field projection)
+ *   - includeReferencedEntities → `includeReferencedEntities` (expand refs)
+ *   - serializeNulls            → `serializeNulls` (only sent when true)
+ *
+ * Fixes the projection gap surfaced by the Ayurvedashop autopilot: the
+ * collection children carried no `routing`, so `properties` (and the other two)
+ * were collected in the UI but never reached the weclapp API — every GET/list
+ * op silently returned the full entity instead of the requested projection.
+ *
+ * Attached on the top-level `additionalFields` INodeProperties.routing for the
+ * same reason as filtersPreSend: INodePropertyCollection children do not carry
+ * a routing field. Comma lists are whitespace-normalized but colons are
+ * preserved so referenced-entity projections like `salesOrder:id` survive.
  */
-export const returnAllOrLimit: INodeProperties[] = [
-	{
-		displayName: 'Return All',
-		name: 'returnAll',
-		type: 'boolean',
-		default: false,
-		description: 'Whether to return all results or only up to a given limit',
+export async function additionalFieldsPreSend(
+	this: { getNodeParameter: (name: string, fallback?: unknown) => unknown },
+	requestOptions: IHttpRequestOptions,
+): Promise<IHttpRequestOptions> {
+	const params = this.getNodeParameter('additionalFields', {}) as {
+		properties?: string;
+		includeReferencedEntities?: string;
+		additionalProperties?: string;
+		serializeNulls?: boolean;
+	};
+
+	// Trim each comma-separated token and drop empties; keep colons intact so
+	// weclapp colon-projections (e.g. `salesOrder:id`) are not mangled.
+	const normalizeCsv = (raw: string): string =>
+		raw
+			.split(',')
+			.map((token) => token.trim())
+			.filter((token) => token.length > 0)
+			.join(',');
+
+	const additions: Record<string, string | boolean> = {};
+
+	const properties = params?.properties?.trim();
+	if (properties) {
+		additions.properties = normalizeCsv(properties);
+	}
+
+	const includeReferencedEntities = params?.includeReferencedEntities?.trim();
+	if (includeReferencedEntities) {
+		additions.includeReferencedEntities = normalizeCsv(includeReferencedEntities);
+	}
+
+	// additionalProperties requests weclapp's computed sibling block (e.g.
+	// shipment `availability`); mergeAdditionalProperties (postReceive) folds
+	// the index-aligned response back onto each row.
+	const requestedAdditionalProperties = params?.additionalProperties?.trim();
+	if (requestedAdditionalProperties) {
+		additions.additionalProperties = normalizeCsv(requestedAdditionalProperties);
+	}
+
+	// weclapp defaults serializeNulls to false — only send when explicitly enabled.
+	if (params?.serializeNulls === true) {
+		additions.serializeNulls = true;
+	}
+
+	if (Object.keys(additions).length === 0) {
+		return requestOptions;
+	}
+
+	return {
+		...requestOptions,
+		qs: {
+			...(requestOptions.qs ?? {}),
+			...additions,
+		},
+	};
+}
+
+// ---------------------------------------------------------------------------
+// preSend: empty JSON body for arraybuffer POST ops
+// ---------------------------------------------------------------------------
+
+/**
+ * PreSend hook for arraybuffer POST operations that have no request body fields
+ * (e.g. createPickingList, createQuotationPdf).
+ *
+ * Problem: n8n's `convertN8nRequestToAxios` skips setting `axiosConfig.data`
+ * when `body` is an empty plain object `{}` (it calls `isObjectEmpty` and
+ * short-circuits). This means the HTTP request is sent with no body at all,
+ * and weclapp returns HTTP 400 "body is not a json object" because
+ * Content-Type: application/json is set (from requestDefaults) but the body
+ * is empty.
+ *
+ * Fix: set `requestOptions.body` to the JSON string `'{}'` (not the object
+ * `{}`). `convertN8nRequestToAxios` has `typeof body === 'string'` as the
+ * first branch in its truthy check, so a string always passes through and
+ * is set as `axiosConfig.data = '{}'`. Axios then sends `Content-Length: 2`
+ * and weclapp receives a valid empty JSON object body.
+ *
+ * This preSend runs AFTER the routing-node merges all field-level body keys,
+ * so it must only be attached to ops that have NO body fields (ops that rely
+ * on field routing for their body should NOT use this hook).
+ */
+/**
+ * @deprecated The preSend approach for empty JSON bodies doesn't reliably fire in all
+ * n8n routing-node execution contexts. Use `routing.request.body: '{}'` in the operation
+ * definition instead (sets body as a string literal, bypassing the isObjectEmpty check in
+ * convertN8nRequestToAxios). Kept for completeness but not used in current ShipmentDescription.
+ */
+export async function emptyJsonBodyPreSend(
+	this: unknown,
+	requestOptions: IHttpRequestOptions,
+): Promise<IHttpRequestOptions> {
+	return {
+		...requestOptions,
+		body: '{}',
+	};
+}
+
+// ---------------------------------------------------------------------------
+// limit + implicit pagination
+// ---------------------------------------------------------------------------
+
+/**
+ * Single Limit field used by every List operation. Spread into a resource
+ * descriptor's fields: `{ ...limitField, displayOptions: { show: { resource, operation:['list'] } } }`.
+ *
+ * UX contract (replaces the old returnAll+limit pair):
+ *   - Limit > 0  → return up to that many rows. pageSize is set to the limit,
+ *     so a single request suffices for limit ≤ 1000.
+ *   - Limit = 0 / empty → return ALL rows. pageSize is forced to 1000 and the
+ *     list op paginates automatically (see listPaginationRouting).
+ *
+ * The paginate gate lives on the list op (listPaginationRouting), keyed on
+ * `!$parameter.limit`, so there is no separate "Return All" toggle.
+ */
+/*
+ * The three `*-for-limit` lint rules enforce n8n's standard limit convention
+ * (default 50, min 1, description "Max number of results to return"), which
+ * assumes the returnAll+limit pair. We deliberately deviate: a single Limit
+ * where empty/0 means "return all" with implicit pagination. Disabling these
+ * three rules for this field only is intentional.
+ */
+/* eslint-disable n8n-nodes-base/node-param-default-wrong-for-limit, n8n-nodes-base/node-param-description-wrong-for-limit, n8n-nodes-base/node-param-min-value-wrong-for-limit */
+export const limitField: INodeProperties = {
+	displayName: 'Limit',
+	name: 'limit',
+	type: 'number',
+	default: 0,
+	description:
+		'Max number of results to return. Leave empty (0) to return ALL results — the node paginates automatically.',
+	typeOptions: {
+		minValue: 0,
 	},
-	{
-		displayName: 'Limit',
-		name: 'limit',
-		type: 'number',
-		default: 50,
-		description: 'Max number of results to return',
-		typeOptions: {
-			minValue: 1,
-		},
-		displayOptions: {
-			show: {
-				returnAll: [false],
-			},
-		},
-		routing: {
-			send: {
-				type: 'query',
-				property: 'pageSize',
-				value: '={{$value}}',
-			},
+	routing: {
+		send: {
+			type: 'query',
+			property: 'pageSize',
+			// limit > 0 → page of that size (single request for ≤1000);
+			// limit empty/0 → 1000 per page while the paginator walks all pages.
+			value: '={{ $value > 0 ? $value : 1000 }}',
 		},
 	},
-];
+};
+/* eslint-enable n8n-nodes-base/node-param-default-wrong-for-limit, n8n-nodes-base/node-param-description-wrong-for-limit, n8n-nodes-base/node-param-min-value-wrong-for-limit */
+
+/**
+ * Routing fragment enabling implicit auto-pagination on a List operation.
+ * Spread into the list op's `routing`, alongside `request` and `output`:
+ *   routing: { request: {...}, ...listPaginationRouting, output: {...} }
+ *
+ * `send.paginate` is a boolean-valued expression: pagination runs only when
+ * `limit` is empty/0 (i.e. "return all"). When a limit is set, paginate is
+ * false and the single request uses pageSize = limit (from limitField).
+ */
+export const listPaginationRouting: Pick<INodePropertyRouting, 'operations' | 'send'> = {
+	operations: {
+		pagination: paginationConfig,
+	},
+	send: {
+		paginate: '={{ !$parameter.limit }}',
+	},
+};
 
 // ---------------------------------------------------------------------------
 // filtersCollection
@@ -262,6 +432,24 @@ export const filtersCollection: INodeProperties = {
 				},
 			],
 		},
+		{
+			displayName: 'Raw Filter',
+			name: 'rawFilter',
+			values: [
+				{
+					displayName: 'Expression',
+					name: 'expression',
+					type: 'string',
+					typeOptions: {
+						rows: 3,
+					},
+					default: '',
+					placeholder: '((shipped = true) or (fulfillmentProviderId null))',
+					description:
+						"Raw weclapp filter= expression, sent verbatim as the API's `filter` query parameter. Supports OR / AND / parentheses per the weclapp filter grammar. Warning: mixing this with the field-operator filters above is not additive — prefer one approach per request.",
+				},
+			],
+		},
 	],
 };
 
@@ -269,13 +457,25 @@ export const filtersCollection: INodeProperties = {
 // additionalFields
 // ---------------------------------------------------------------------------
 
-/** Optional query-level modifiers available on most List and Get operations. */
+/**
+ * Optional query-level modifiers available on most List and Get operations.
+ *
+ * The `preSend: [additionalFieldsPreSend]` hook is what actually sends these to
+ * weclapp: collection children cannot carry `routing`, so without the top-level
+ * preSend the projection fields were silently dropped (fixed alongside #57's
+ * filters pattern).
+ */
 export const additionalFields: INodeProperties = {
 	displayName: 'Additional Fields',
 	name: 'additionalFields',
 	type: 'collection',
 	placeholder: 'Add field',
 	default: {},
+	routing: {
+		send: {
+			preSend: [additionalFieldsPreSend],
+		},
+	},
 	options: [
 		{
 			displayName: 'Properties',
@@ -292,6 +492,15 @@ export const additionalFields: INodeProperties = {
 			default: '',
 			description: 'Comma-separated list of referenced entity IDs to expand',
 			placeholder: 'e.g. article,party',
+		},
+		{
+			displayName: 'Additional Properties',
+			name: 'additionalProperties',
+			type: 'string',
+			default: '',
+			description:
+				'Comma-separated list of weclapp computed properties to fetch (returned index-aligned and merged onto each row under `additionalProperties`)',
+			placeholder: 'e.g. availability,currentSalesPrice',
 		},
 		{
 			displayName: 'Serialize Nulls',
@@ -323,4 +532,90 @@ export const simplifyField: INodeProperties = {
 	type: 'boolean',
 	default: true,
 	description: 'Whether to return a simplified version of the response instead of the raw data',
+};
+
+// ---------------------------------------------------------------------------
+// customAttributes resourceMapper (typed, Berlin-correct dates)
+// ---------------------------------------------------------------------------
+
+/**
+ * PreSend action for the shared `customAttributes` resourceMapper field.
+ *
+ * Declarative routing cannot call `buildWeclappCustomAttributes` inline, so — as
+ * with filtersPreSend — the transform runs in a preSend hook. It reads the
+ * resourceMapper value from the `customAttributes` node parameter, builds the
+ * weclapp `customAttributes[]` array, and merges it into requestOptions.body
+ * without clobbering the other body keys the field routing already assembled.
+ *
+ * Guards:
+ *  - When the resourceMapper is empty (no mapped values) nothing is added.
+ *  - When the body is a JSON string (empty-body ops) it is left untouched — the
+ *    entities that expose this field always assemble their body from `type:'body'`
+ *    collection fields, so the body is a plain object here.
+ */
+export async function customAttributesPreSend(
+	this: { getNodeParameter: (name: string, fallback?: unknown) => unknown },
+	requestOptions: IHttpRequestOptions,
+): Promise<IHttpRequestOptions> {
+	const rmv = this.getNodeParameter('customAttributes', {}) as
+		| Pick<ResourceMapperValue, 'value' | 'schema'>
+		| undefined;
+
+	const attributes = rmv ? buildWeclappCustomAttributes(rmv) : [];
+	if (attributes.length === 0) {
+		return requestOptions;
+	}
+
+	// Only merge into an object body; leave string bodies untouched.
+	const existingBody =
+		requestOptions.body && typeof requestOptions.body === 'object'
+			? (requestOptions.body as IDataObject)
+			: {};
+
+	return {
+		...requestOptions,
+		body: {
+			...existingBody,
+			customAttributes: attributes,
+		},
+	};
+}
+
+/**
+ * Shared `Custom Attributes` field (n8n resourceMapper). Spread into the
+ * create/update body region of each entity that supports custom attributes,
+ * overriding `displayOptions` for the concrete resource:
+ *   { ...customAttributesField, displayOptions: { show: { resource:['party'], operation:['create','update'] } } }
+ *
+ * A single generic resourceMapping method (`getCustomAttributeFields`) resolves
+ * the entity from the current `resource` parameter, so one field definition works
+ * for every entity. The `customAttributesPreSend` hook injects the built array
+ * into the request body.
+ */
+export const customAttributesField: INodeProperties = {
+	displayName: 'Custom Attributes',
+	name: 'customAttributes',
+	type: 'resourceMapper',
+	noDataExpression: true,
+	default: { mappingMode: 'defineBelow', value: null },
+	description: 'Set weclapp custom attributes for this record, typed by their definition',
+	typeOptions: {
+		loadOptionsDependsOn: ['resource'],
+		resourceMapper: {
+			resourceMapperMethod: 'getCustomAttributeFields',
+			mode: 'add',
+			fieldWords: {
+				singular: 'custom attribute',
+				plural: 'custom attributes',
+			},
+			addAllFields: false,
+			multiKeyMatch: false,
+			supportAutoMap: false,
+		},
+	},
+	routing: {
+		send: {
+			preSend: [customAttributesPreSend],
+		},
+	},
 };

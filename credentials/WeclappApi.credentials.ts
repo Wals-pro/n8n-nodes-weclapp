@@ -2,7 +2,7 @@
  * weclapp API credential — AuthenticationToken header auth.
  *
  * Maintained by Wals-pro (https://wals.pro).
- * AI copilot: https://dev.weclapp-ai.wals.pro (Beta).
+ * weclapp MCP server for AI assistants: https://weclapp-mcp.wals.pro
  */
 import type {
 	IAuthenticateGeneric,

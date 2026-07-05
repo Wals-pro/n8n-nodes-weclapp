@@ -2,10 +2,13 @@ import type { INodeProperties } from 'n8n-workflow';
 
 import {
 	additionalFields,
+	customAttributesField,
 	filtersCollection,
-	returnAllOrLimit,
+	limitField,
+	listPaginationRouting,
 	simplifyField,
 } from '../SharedFields';
+import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ─── Operation selector ───────────────────────────────────────────────────────
 
@@ -280,18 +283,22 @@ export const salesOrderOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/salesOrder/id/{{$parameter.salesOrderId}}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
 				description: 'List sales orders with optional filters and pagination',
-				action: 'List sales orders',
+				action: 'Get many sales orders',
 				routing: {
 					request: {
 						method: 'GET',
 						url: '/salesOrder',
 					},
+					...listPaginationRouting,
 					output: {
 						postReceive: [
 							{
@@ -300,6 +307,8 @@ export const salesOrderOperations: INodeProperties[] = [
 									property: 'result',
 								},
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -494,12 +503,12 @@ export const salesOrderOperations: INodeProperties[] = [
 export const salesOrderFields: INodeProperties[] = [
 	// ── Shared ID field (all ops except list/create) ──────────────────────────
 	{
-		displayName: 'Sales Order ID',
+		displayName: 'Sales Order',
 		name: 'salesOrderId',
-		type: 'string',
+		type: 'resourceLocator',
+		default: { mode: 'list', value: '' },
 		required: true,
-		default: '',
-		description: 'The internal weclapp ID of the sales order',
+		description: 'The sales order to operate on',
 		displayOptions: {
 			show: {
 				resource: ['salesOrder'],
@@ -538,13 +547,58 @@ export const salesOrderFields: INodeProperties[] = [
 				],
 			},
 		},
+		modes: [
+			{
+				displayName: 'From List',
+				name: 'list',
+				type: 'list',
+				typeOptions: {
+					searchListMethod: 'searchSalesOrders',
+					searchable: true,
+				},
+			},
+			{
+				displayName: 'By ID',
+				name: 'id',
+				type: 'string',
+				placeholder: 'e.g. 1234567890',
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '^[0-9]+$',
+							errorMessage: 'Sales Order ID must be numeric',
+						},
+					},
+				],
+			},
+			{
+				displayName: 'By URL',
+				name: 'url',
+				type: 'string',
+				placeholder: 'e.g. https://tenant.weclapp.com/webapp/api/v2/salesOrder/id/1234567890',
+				extractValue: {
+					type: 'regex',
+					regex: '/salesOrder/id/([0-9]+)',
+				},
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '/salesOrder/id/[0-9]+',
+							errorMessage: 'URL must contain /salesOrder/id/{id}',
+						},
+					},
+				],
+			},
+		],
 	},
 
 	// ── List: pagination + filters ────────────────────────────────────────────
-	...returnAllOrLimit.map((f) => ({
-		...f,
+	{
+		...limitField,
 		displayOptions: { show: { resource: ['salesOrder'], operation: ['list'] } },
-	})),
+	},
 	{
 		...filtersCollection,
 		description:
@@ -581,6 +635,12 @@ export const salesOrderFields: INodeProperties[] = [
 				body: '={{ JSON.parse($value) }}',
 			},
 		},
+	},
+
+	// ── Create / Update: typed custom attributes ──────────────────────────────
+	{
+		...customAttributesField,
+		displayOptions: { show: { resource: ['salesOrder'], operation: ['create', 'update'] } },
 	},
 
 	// ── Additional fields (list / get / create / update) ─────────────────────

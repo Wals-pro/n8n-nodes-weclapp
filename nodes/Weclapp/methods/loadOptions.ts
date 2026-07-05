@@ -66,11 +66,21 @@ function makeListSearch(
 }
 
 /**
+ * Default label builder for reference-data dropdowns: '<name> (<id>)'.
+ * Falls back to the bare id when the entity has no `name` field.
+ */
+function labelWithId(item: IDataObject): string {
+	const name = item.name;
+	return name ? `${name} (${item.id})` : String(item.id);
+}
+
+/**
  * Build a loadOptions method that fetches a bounded reference list (single page, pageSize 1000).
+ * Default label format is '<name> (<id>)' per the node UX convention.
  */
 function makeSimpleLoadOptions(
 	endpoint: string,
-	toName: (item: IDataObject) => string = (item) => String(item.name ?? item.id),
+	toName: (item: IDataObject) => string = labelWithId,
 ): (this: ILoadOptionsFunctions) => Promise<INodePropertyOptions[]> {
 	return async function (this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 		const response = await weclappApiRequest.call(this, 'GET', endpoint, undefined, { pageSize: 1000 });
@@ -147,6 +157,55 @@ export const listSearch: Record<
 		'name',
 		(item) => String(item.name ?? item.id),
 	),
+
+	searchProductionOrders: makeListSearch(
+		'/productionOrder',
+		'id,productionOrderNumber',
+		'productionOrderNumber',
+		(item) => `${item.productionOrderNumber ?? item.id} (${item.id})`,
+	),
+
+	searchShipments: makeListSearch(
+		'/shipment',
+		'id,shipmentNumber,shipmentType',
+		'shipmentNumber',
+		(item) => `${item.shipmentNumber ?? item.id} (${item.id})`,
+	),
+
+	searchTickets: makeListSearch(
+		'/ticket',
+		'id,subject',
+		'subject',
+		(item) => `${item.subject ?? item.id} (${item.id})`,
+	),
+
+	searchDocuments: makeListSearch(
+		'/document',
+		'id,name',
+		'name',
+		(item) => `${item.name ?? item.id} (${item.id})`,
+	),
+
+	searchWebhooks: makeListSearch(
+		'/webhook',
+		'id,entityName,url',
+		'entityName',
+		(item) => `${item.entityName ?? item.url ?? item.id} (${item.id})`,
+	),
+
+	searchBankAccounts: makeListSearch(
+		'/bankAccount',
+		'id,accountHolder,iban',
+		'accountHolder',
+		(item) => `${item.accountHolder ?? item.iban ?? item.id} (${item.id})`,
+	),
+
+	searchWarehouses: makeListSearch(
+		'/warehouse',
+		'id,name',
+		'name',
+		(item) => `${item.name ?? item.id} (${item.id})`,
+	),
 };
 
 // ---------------------------------------------------------------------------
@@ -157,15 +216,29 @@ export const loadOptions: Record<string, (this: ILoadOptionsFunctions) => Promis
 	// Warehouses can be numerous — fetch all pages to avoid truncation.
 	getWarehouses: async function (this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 		const items = await weclappApiRequestAllItems.call(this, 'GET', '/warehouse');
-		return items.map((item) => ({ name: String(item.name ?? item.id), value: item.id as string }));
+		return items.map((item) => ({ name: labelWithId(item), value: item.id as string }));
 	},
 
+	// ── Reference-data catalogue (bounded '<name> (<id>)' dropdowns) ──
 	getCurrencies: makeSimpleLoadOptions('/currency'),
 	getPaymentMethods: makeSimpleLoadOptions('/paymentMethod'),
 	getTermsOfPayment: makeSimpleLoadOptions('/termOfPayment'),
 	getTicketStatuses: makeSimpleLoadOptions('/ticketStatus'),
 	getTags: makeSimpleLoadOptions('/tag'),
 	getUnits: makeSimpleLoadOptions('/unit'),
+	getShipmentMethods: makeSimpleLoadOptions('/shipmentMethod'),
+	getShippingCarriers: makeSimpleLoadOptions('/shippingCarrier'),
+	getArticleCategories: makeSimpleLoadOptions('/articleCategory'),
+	getManufacturers: makeSimpleLoadOptions('/manufacturer'),
+	getCustomerCategories: makeSimpleLoadOptions('/customerCategory'),
+	getSectors: makeSimpleLoadOptions('/sector'),
+	getFulfillmentProviders: makeSimpleLoadOptions('/fulfillmentProvider'),
+
+	// commercialLanguage has no `name` field — label by language/country code instead.
+	getCommercialLanguages: makeSimpleLoadOptions('/commercialLanguage', (item) => {
+		const code = item.languageCode ?? item.countryCode;
+		return code ? `${code} (${item.id})` : String(item.id);
+	}),
 
 	// Users: filter to active only and build a readable full-name label.
 	getUsers: async function (this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
@@ -176,7 +249,8 @@ export const loadOptions: Record<string, (this: ILoadOptionsFunctions) => Promis
 		const items = (response.result as IDataObject[]) ?? [];
 		return items.map((item) => {
 			const fullName = [item.firstName, item.lastName].filter(Boolean).join(' ');
-			return { name: fullName || String(item.username ?? item.id), value: item.id as string };
+			const name = fullName || String(item.username ?? item.id);
+			return { name: `${name} (${item.id})`, value: item.id as string };
 		});
 	},
 };

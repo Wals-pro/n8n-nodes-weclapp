@@ -1,6 +1,78 @@
 # Changelog
 
-All notable changes to `n8n-nodes-weclapp` are documented here.
+All notable changes to `@wals-pro/n8n-nodes-weclapp` are documented here.
+
+## [0.3.2] - 2026-07-05
+
+### Changed
+
+- README: expanded Contributing into a community section — issues are actively
+  triaged and worked, pull requests of every size are welcome, explicit invitation
+  for first-time contributors (draft PRs, early review).
+
+## [0.3.1] - 2026-07-05
+
+Documentation and branding release — no functional changes.
+
+### Changed
+
+- README rewritten in a factual tone: requirements section, honest work-in-progress
+  status, behavior notes (limit/pagination semantics, filters incl. raw expression,
+  projection, partial updates, custom attributes, create guard, error parsing).
+- Corrected install guidance: community nodes require self-hosted n8n; the node is
+  not yet verified and therefore not installable on n8n Cloud ("n8n desktop" removed).
+- Node and trigger in-UI notices plus the credential header now reference the
+  **weclapp MCP server** ([weclapp-mcp.wals.pro](https://weclapp-mcp.wals.pro))
+  instead of the retired copilot link.
+
+## [0.3.0] - 2026-07-05
+
+First release under the scoped package name **`@wals-pro/n8n-nodes-weclapp`** (the
+unscoped `n8n-nodes-weclapp` name on npm belongs to an unrelated third party). Major
+UX + correctness pass driven by the Ayurvedashop-Autopilot live findings.
+
+### Changed — pagination UX (breaking)
+
+- **Removed the `Return All` toggle.** Every list operation now has a single **`Limit`**
+  field: set it to cap results, leave it empty (`0`) to return **all** results — the node
+  paginates automatically and implicitly (`listPaginationRouting` gates n8n offset
+  pagination on an empty limit; `pageSize` defaults to the limit, else 1000/page).
+
+### Added
+
+- **`properties` / `includeReferencedEntities` / `serializeNulls` projection** now actually
+  reach the API — `additionalFieldsPreSend` routes them into the query string on every
+  GET/list op (previously collected in the UI and silently dropped). Colon projections like
+  `salesOrder:id` are preserved.
+- **`additionalProperties`** support: requestable via Additional Fields, and the
+  index-aligned response block (e.g. shipment `availability`) is merged back onto each row
+  under `json.additionalProperties` (`mergeAdditionalProperties` postReceive).
+- **Raw filter escape hatch** (`Filters → Raw Filter Expression`): pass a verbatim weclapp
+  `filter=` grammar string for OR / parenthesized logic the field/operator rows can't express.
+- **`in` / `notin` convenience**: accept a comma-separated list (`A,B,C`) and normalize to a
+  JSON array; existing JSON-array literals pass through unchanged.
+- **Resource Locator** for record IDs across all primary resources (From List / By ID), with
+  `listSearch` methods — inoculates against the empty-id "Record ID is required" failure class.
+- **`loadOptions` reference-data dropdowns** for currencies, sales channels, payment methods,
+  warehouses, shipping carriers, tax, units, tags, and more.
+- **Typed custom attributes**: tenant custom-attribute definitions render as native typed
+  fields (date/number/boolean/list/multiselect) on Create/Update for party, salesOrder,
+  salesInvoice, article; dates converted Berlin-local (DST-correct), not naive UTC.
+- **Real `Simplify`**: the toggle now applies a per-resource field whitelist (was a no-op).
+
+### Changed
+
+- List operations relabeled **`Get Many`** (display/action only; routing unchanged).
+
+### Fixed
+
+- Broken `searchListMethod` references (`getArticles` / `getProductionOrders`) that left the
+  Article/ProductionOrder resource locators half-working.
+
+### Notes
+
+- 529 unit tests pass; `tsc` clean; build OK. Declarative pagination is unit-tested for
+  config shape but should get a live n8n smoke test against `testhandel` before wide rollout.
 
 ## [0.2.0-rc1] - 2026-04-17
 

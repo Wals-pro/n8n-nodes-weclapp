@@ -1,6 +1,7 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, returnAllOrLimit, simplifyField } from '../SharedFields';
+import { additionalFields, filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ─── Shared postReceive helpers ──────────────────────────────────────────────
 
@@ -42,16 +43,20 @@ export const tagOperations: INodeProperties[] = [
 				value: 'get',
 				description: 'Get a tag by ID',
 				action: 'Get a tag',
-				routing: { request: { method: 'GET', url: '=/tag/id/{{$parameter.tagId}}' } },
+				routing: {
+					request: { method: 'GET', url: '=/tag/id/{{$parameter.tagId}}' },
+					output: { postReceive: [simplifyPostReceive] },
+				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
 				description: 'List tags with optional filters',
-				action: 'List tags',
+				action: 'Get many tags',
 				routing: {
 					request: { method: 'GET', url: '/tag' },
-					output: { postReceive: rootProperty },
+					...listPaginationRouting,
+					output: { postReceive: [...rootProperty, mergeAdditionalProperties, simplifyPostReceive] },
 				},
 			},
 			{
@@ -69,12 +74,8 @@ export const tagOperations: INodeProperties[] = [
 export const tagFields: INodeProperties[] = [
 	// ── List ──────────────────────────────────────────────────────────────────
 	{
-		...returnAllOrLimit[0],
+		...limitField,
 		displayOptions: { show: { resource: ['tag'], operation: ['list'] } },
-	},
-	{
-		...returnAllOrLimit[1],
-		displayOptions: { show: { resource: ['tag'], operation: ['list'], returnAll: [false] } },
 	},
 	{
 		...filtersCollection,
@@ -163,16 +164,20 @@ export const unitOperations: INodeProperties[] = [
 				value: 'get',
 				description: 'Get a unit by ID',
 				action: 'Get a unit',
-				routing: { request: { method: 'GET', url: '=/unit/id/{{$parameter.unitId}}' } },
+				routing: {
+					request: { method: 'GET', url: '=/unit/id/{{$parameter.unitId}}' },
+					output: { postReceive: [simplifyPostReceive] },
+				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
 				description: 'List units of measure with optional filters',
-				action: 'List units',
+				action: 'Get many units',
 				routing: {
 					request: { method: 'GET', url: '/unit' },
-					output: { postReceive: rootProperty },
+					...listPaginationRouting,
+					output: { postReceive: [...rootProperty, mergeAdditionalProperties, simplifyPostReceive] },
 				},
 			},
 			{
@@ -190,12 +195,8 @@ export const unitOperations: INodeProperties[] = [
 export const unitFields: INodeProperties[] = [
 	// ── List ──────────────────────────────────────────────────────────────────
 	{
-		...returnAllOrLimit[0],
+		...limitField,
 		displayOptions: { show: { resource: ['unit'], operation: ['list'] } },
-	},
-	{
-		...returnAllOrLimit[1],
-		displayOptions: { show: { resource: ['unit'], operation: ['list'], returnAll: [false] } },
 	},
 	{
 		...filtersCollection,
@@ -282,7 +283,10 @@ export const userOperations: INodeProperties[] = [
 				value: 'get',
 				description: 'Get a user by ID',
 				action: 'Get a user',
-				routing: { request: { method: 'GET', url: '=/user/id/{{$parameter.userId}}' } },
+				routing: {
+					request: { method: 'GET', url: '=/user/id/{{$parameter.userId}}' },
+					output: { postReceive: [simplifyPostReceive] },
+				},
 			},
 			{
 				name: 'Get Current',
@@ -291,17 +295,18 @@ export const userOperations: INodeProperties[] = [
 				action: 'Get current user',
 				routing: {
 					request: { method: 'GET', url: '/user/currentUser' },
-					output: { postReceive: rootProperty },
+					output: { postReceive: [...rootProperty, simplifyPostReceive] },
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
 				description: 'List users with optional filters',
-				action: 'List users',
+				action: 'Get many users',
 				routing: {
 					request: { method: 'GET', url: '/user' },
-					output: { postReceive: rootProperty },
+					...listPaginationRouting,
+					output: { postReceive: [...rootProperty, mergeAdditionalProperties, simplifyPostReceive] },
 				},
 			},
 			{
@@ -319,12 +324,8 @@ export const userOperations: INodeProperties[] = [
 export const userFields: INodeProperties[] = [
 	// ── List ──────────────────────────────────────────────────────────────────
 	{
-		...returnAllOrLimit[0],
+		...limitField,
 		displayOptions: { show: { resource: ['user'], operation: ['list'] } },
-	},
-	{
-		...returnAllOrLimit[1],
-		displayOptions: { show: { resource: ['user'], operation: ['list'], returnAll: [false] } },
 	},
 	{
 		...filtersCollection,
@@ -469,16 +470,18 @@ export const customAttributeDefinitionOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/customAttributeDefinition/id/{{$parameter.customAttributeDefinitionId}}',
 					},
+					output: { postReceive: [simplifyPostReceive] },
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
 				description: 'List custom attribute definitions with optional filters',
-				action: 'List custom attribute definitions',
+				action: 'Get many custom attribute definitions',
 				routing: {
 					request: { method: 'GET', url: '/customAttributeDefinition' },
-					output: { postReceive: rootProperty },
+					...listPaginationRouting,
+					output: { postReceive: [...rootProperty, mergeAdditionalProperties, simplifyPostReceive] },
 				},
 			},
 			{
@@ -501,19 +504,9 @@ export const customAttributeDefinitionOperations: INodeProperties[] = [
 export const customAttributeDefinitionFields: INodeProperties[] = [
 	// ── List ──────────────────────────────────────────────────────────────────
 	{
-		...returnAllOrLimit[0],
+		...limitField,
 		displayOptions: {
 			show: { resource: ['customAttributeDefinition'], operation: ['list'] },
-		},
-	},
-	{
-		...returnAllOrLimit[1],
-		displayOptions: {
-			show: {
-				resource: ['customAttributeDefinition'],
-				operation: ['list'],
-				returnAll: [false],
-			},
 		},
 	},
 	{

@@ -28,7 +28,7 @@
       },
       "id": "e5f6a7b8-0005-0005-0005-000000000002",
       "name": "weclapp — Get Unmatched Bank Transactions",
-      "type": "n8n-nodes-weclapp.weclapp",
+      "type": "@wals-pro/n8n-nodes-weclapp.weclapp",
       "typeVersion": 1,
       "position": [460, 200],
       "credentials": {
@@ -62,7 +62,7 @@
       },
       "id": "e5f6a7b8-0005-0005-0005-000000000003",
       "name": "weclapp — Get Open Sales Invoices",
-      "type": "n8n-nodes-weclapp.weclapp",
+      "type": "@wals-pro/n8n-nodes-weclapp.weclapp",
       "typeVersion": 1,
       "position": [460, 420],
       "credentials": {

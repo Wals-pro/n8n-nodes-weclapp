@@ -17,7 +17,7 @@
       },
       "id": "c3d4e5f6-0003-0003-0003-000000000002",
       "name": "weclapp — Get Sales Order",
-      "type": "n8n-nodes-weclapp.weclapp",
+      "type": "@wals-pro/n8n-nodes-weclapp.weclapp",
       "typeVersion": 1,
       "position": [460, 300],
       "credentials": {
@@ -38,7 +38,7 @@
       },
       "id": "c3d4e5f6-0003-0003-0003-000000000003",
       "name": "weclapp — Update Sales Order",
-      "type": "n8n-nodes-weclapp.weclapp",
+      "type": "@wals-pro/n8n-nodes-weclapp.weclapp",
       "typeVersion": 1,
       "position": [680, 300],
       "credentials": {

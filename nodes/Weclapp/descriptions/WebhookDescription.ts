@@ -1,6 +1,7 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, returnAllOrLimit, simplifyField } from '../SharedFields';
+import { additionalFields, filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ─── Operation selector ───────────────────────────────────────────────────────
 
@@ -60,21 +61,22 @@ export const webhookOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/webhook/id/{{$parameter["webhookId"]}}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
 				description: 'List and filter webhook subscriptions',
-				action: 'List webhooks',
+				action: 'Get many webhooks',
 				routing: {
 					request: {
 						method: 'GET',
 						url: '/webhook',
-						qs: {
-							pageSize: 1000,
-						},
 					},
+					...listPaginationRouting,
 					output: {
 						postReceive: [
 							{
@@ -83,6 +85,8 @@ export const webhookOperations: INodeProperties[] = [
 									property: 'result',
 								},
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -110,18 +114,63 @@ export const webhookOperations: INodeProperties[] = [
 // ─── Shared webhook ID field ──────────────────────────────────────────────────
 
 const webhookIdField: INodeProperties = {
-	displayName: 'Webhook ID',
+	displayName: 'Webhook',
 	name: 'webhookId',
-	type: 'string',
+	type: 'resourceLocator',
+	default: { mode: 'list', value: '' },
 	required: true,
-	default: '',
-	description: 'The ID of the webhook subscription to operate on',
+	description: 'The webhook subscription to operate on',
 	displayOptions: {
 		show: {
 			resource: ['webhook'],
 			operation: ['get', 'update', 'delete'],
 		},
 	},
+	modes: [
+		{
+			displayName: 'From List',
+			name: 'list',
+			type: 'list',
+			typeOptions: {
+				searchListMethod: 'searchWebhooks',
+				searchable: true,
+			},
+		},
+		{
+			displayName: 'ID',
+			name: 'id',
+			type: 'string',
+			placeholder: 'e.g. 1234567890',
+			validation: [
+				{
+					type: 'regex',
+					properties: {
+						regex: '^[0-9]+$',
+						errorMessage: 'Webhook ID must be numeric',
+					},
+				},
+			],
+		},
+		{
+			displayName: 'URL',
+			name: 'url',
+			type: 'string',
+			placeholder: 'e.g. https://tenant.weclapp.com/webapp/api/v2/webhook/id/1234567890',
+			extractValue: {
+				type: 'regex',
+				regex: '/webhook/id/([0-9]+)',
+			},
+			validation: [
+				{
+					type: 'regex',
+					properties: {
+						regex: '/webhook/id/[0-9]+',
+						errorMessage: 'URL must contain /webhook/id/{id}',
+					},
+				},
+			],
+		},
+	],
 };
 
 // ─── Create: required body fields ────────────────────────────────────────────
@@ -324,17 +373,17 @@ const updateFields: INodeProperties = {
 	],
 };
 
-// ─── List: return all / limit ─────────────────────────────────────────────────
+// ─── List: limit ──────────────────────────────────────────────────────────────
 
-const listReturnAllOrLimit: INodeProperties[] = returnAllOrLimit.map((field) => ({
-	...field,
+const listLimit: INodeProperties = {
+	...limitField,
 	displayOptions: {
 		show: {
 			resource: ['webhook'],
 			operation: ['list'],
 		},
 	},
-}));
+};
 
 // ─── List: filters collection ─────────────────────────────────────────────────
 
@@ -357,19 +406,6 @@ const listSimplify: INodeProperties = {
 		show: {
 			resource: ['webhook'],
 			operation: ['list', 'get'],
-		},
-	},
-	routing: {
-		output: {
-			postReceive: [
-				{
-					type: 'filter',
-					enabled: '={{ $parameter["simplify"] }}',
-					properties: {
-						pass: '={{ ["id","url","entityName","atCreate","atUpdate","atDelete","requestMethod","version"].includes($key) }}',
-					},
-				},
-			],
 		},
 	},
 };
@@ -397,7 +433,7 @@ export const webhookFields: INodeProperties[] = [
 	createAtUpdateField,
 	createAtDeleteField,
 	updateFields,
-	...listReturnAllOrLimit,
+	listLimit,
 	listFilters,
 	listSimplify,
 	getAdditionalFields,

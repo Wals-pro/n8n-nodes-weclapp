@@ -1,4 +1,4 @@
-# Usage Guide — n8n-nodes-weclapp
+# Usage Guide — @wals-pro/n8n-nodes-weclapp
 
 > **Work in progress** — resources are being added incrementally.
 
@@ -8,6 +8,7 @@
 - [Resources Overview](#resources-overview)
 - [Filters](#filters)
 - [Pagination](#pagination)
+- [Updating Records](#updating-records)
 - [Binary Downloads (PDF / Images)](#binary-downloads-pdf--images)
 - [Trigger Node (Webhooks)](#trigger-node-webhooks)
 - [Custom API Call](#custom-api-call)
@@ -107,9 +108,33 @@ Field: createdDate   Operator: -ge   Value: 1700000000000
 
 ## Pagination
 
-- **Return All** toggle: when enabled, the node fetches all pages automatically (up to 100 pages × 1000 records = 100,000 records maximum).
-- **Limit**: when Return All is off, enter the maximum number of records to fetch (default 50).
+- **Limit**: enter the maximum number of records to fetch. Leave it empty or set it to `0` to fetch **all** records — the node then paginates automatically (up to 100 pages × 1000 records = 100,000 records maximum).
+- There is no separate *Return All* toggle: an empty/zero Limit means "return all".
 - Page size is 1000 per page (the weclapp maximum).
+
+---
+
+## Updating Records
+
+### Updates are version-free
+
+The **Update** operation sends a `PUT` with `ignoreMissingProperties=true`. You do **not** need to fetch the entity's current `version` first, and you do **not** need to send a full body — only the properties you include are changed, and every other field is left untouched. A status-only update works on its own:
+
+```json
+{ "status": "DELIVERY_NOTE_PRINTED" }
+```
+
+Because the version is not required, you avoid optimistic-lock (`409`) errors from stale versions, and because missing properties are ignored, you never accidentally wipe fields you did not send.
+
+### Guard downstream marker writes on create success
+
+After a **Create** operation, verify success before any downstream step that writes a marker back (e.g. flagging a source row as "synced" in another system). A created record has a non-null `id` and no `error`, so gate the marker step with:
+
+```
+{{ $json.id != null && $json.error == null }}
+```
+
+For marker workflows, also prefer the node's **Stop On Error** setting (node **Settings → Stop On Error**): if the create fails, the item stops instead of falling through and marking a record as synced that was never created.
 
 ---
 

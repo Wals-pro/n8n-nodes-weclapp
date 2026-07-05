@@ -25,22 +25,23 @@ describe('descriptions/index', () => {
 
 // ── SharedFields.ts ───────────────────────────────────────────────────────────
 import {
-	returnAllOrLimit,
+	limitField,
+	listPaginationRouting,
 	filtersCollection,
 	additionalFields,
 	simplifyField,
 } from '../../nodes/Weclapp/SharedFields';
 
 describe('SharedFields', () => {
-	it('returnAllOrLimit is a non-empty Array', () => {
-		expect(Array.isArray(returnAllOrLimit)).toBe(true);
-		expect(returnAllOrLimit.length).toBeGreaterThan(0);
+	it('limitField is a single number field named limit', () => {
+		expect(limitField).toBeTypeOf('object');
+		expect(limitField.name).toBe('limit');
+		expect(limitField.type).toBe('number');
 	});
 
-	it('returnAllOrLimit contains returnAll and limit fields', () => {
-		const names = returnAllOrLimit.map((f) => f.name);
-		expect(names).toContain('returnAll');
-		expect(names).toContain('limit');
+	it('listPaginationRouting carries pagination operations and a paginate gate', () => {
+		expect(listPaginationRouting.operations?.pagination).toBeTypeOf('object');
+		expect(listPaginationRouting.send?.paginate).toBe('={{ !$parameter.limit }}');
 	});
 
 	it('filtersCollection is an INodeProperties object', () => {

@@ -1,6 +1,7 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { filtersCollection, returnAllOrLimit, simplifyField } from '../SharedFields';
+import { filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ---------------------------------------------------------------------------
 // Operation list for the purchaseInvoice resource
@@ -119,18 +120,22 @@ export const purchaseInvoiceOperations: INodeProperties[] = [
 						method: 'GET',
 						url: '=/purchaseInvoice/id/{{$parameter["purchaseInvoiceId"]}}',
 					},
+					output: {
+						postReceive: [simplifyPostReceive],
+					},
 				},
 			},
 			{
-				name: 'List',
+				name: 'Get Many',
 				value: 'list',
-				action: 'List purchase invoices',
+				action: 'Get many purchase invoices',
 				description: 'Retrieve a list of purchase invoices',
 				routing: {
 					request: {
 						method: 'GET',
 						url: '/purchaseInvoice',
 					},
+					...listPaginationRouting,
 					output: {
 						postReceive: [
 							{
@@ -139,6 +144,8 @@ export const purchaseInvoiceOperations: INodeProperties[] = [
 									property: 'result',
 								},
 							},
+							mergeAdditionalProperties,
+							simplifyPostReceive,
 						],
 					},
 				},
@@ -216,12 +223,12 @@ export const purchaseInvoiceOperations: INodeProperties[] = [
 // ---------------------------------------------------------------------------
 
 const purchaseInvoiceIdField: INodeProperties = {
-	displayName: 'Purchase Invoice ID',
+	displayName: 'Purchase Invoice',
 	name: 'purchaseInvoiceId',
-	type: 'string',
+	type: 'resourceLocator',
+	default: { mode: 'list', value: '' },
 	required: true,
-	default: '',
-	description: 'The ID of the purchase invoice',
+	description: 'The purchase invoice to operate on',
 	displayOptions: {
 		show: {
 			resource: ['purchaseInvoice'],
@@ -239,6 +246,51 @@ const purchaseInvoiceIdField: INodeProperties = {
 			],
 		},
 	},
+	modes: [
+		{
+			displayName: 'ID',
+			name: 'id',
+			type: 'string',
+			placeholder: 'e.g. 1234567890',
+			validation: [
+				{
+					type: 'regex',
+					properties: {
+						regex: '^[0-9]+$',
+						errorMessage: 'Purchase Invoice ID must be numeric',
+					},
+				},
+			],
+		},
+		{
+			displayName: 'From List',
+			name: 'list',
+			type: 'list',
+			typeOptions: {
+				searchListMethod: 'searchPurchaseInvoices',
+				searchable: true,
+			},
+		},
+		{
+			displayName: 'URL',
+			name: 'url',
+			type: 'string',
+			placeholder: 'e.g. https://tenant.weclapp.com/webapp/api/v2/purchaseInvoice/id/1234567890',
+			extractValue: {
+				type: 'regex',
+				regex: '/purchaseInvoice/id/([0-9]+)',
+			},
+			validation: [
+				{
+					type: 'regex',
+					properties: {
+						regex: '/purchaseInvoice/id/[0-9]+',
+						errorMessage: 'URL must contain /purchaseInvoice/id/{id}',
+					},
+				},
+			],
+		},
+	],
 };
 
 // ---------------------------------------------------------------------------
@@ -247,27 +299,11 @@ const purchaseInvoiceIdField: INodeProperties = {
 
 const listFields: INodeProperties[] = [
 	{
-		...returnAllOrLimit[0],
+		...limitField,
 		displayOptions: {
 			show: {
 				resource: ['purchaseInvoice'],
 				operation: ['list'],
-			},
-		},
-	},
-	{
-		...returnAllOrLimit[1],
-		displayOptions: {
-			show: {
-				resource: ['purchaseInvoice'],
-				operation: ['list'],
-				returnAll: [false],
-			},
-		},
-		routing: {
-			send: {
-				type: 'query',
-				property: 'pageSize',
 			},
 		},
 	},
