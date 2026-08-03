@@ -1,6 +1,6 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { additionalFields, customAttributesField, filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { additionalFields, customAttributesField, filtersCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
 import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ─── Operation selector ──────────────────────────────────────────────────────
@@ -326,15 +326,7 @@ const articleIdField: INodeProperties = {
 
 // ─── List operation fields ────────────────────────────────────────────────────
 
-const listLimit: INodeProperties = {
-	...limitField,
-	displayOptions: {
-		show: {
-			resource: ['article'],
-			operation: ['list'],
-		},
-	},
-};
+const listLimit: INodeProperties[] = listLimitFields('article');
 
 const listFilters: INodeProperties = {
 	...filtersCollection,
@@ -739,7 +731,7 @@ export const articleDescription: INodeProperties[] = [
 	...articleOperations,
 	articleIdField,
 	// List
-	listLimit,
+	...listLimit,
 	listFilters,
 	listSimplify,
 	listAdditionalFields,

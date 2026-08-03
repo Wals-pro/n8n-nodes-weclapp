@@ -41,7 +41,7 @@ describe('SharedFields', () => {
 
 	it('listPaginationRouting carries pagination operations and a paginate gate', () => {
 		expect(listPaginationRouting.operations?.pagination).toBeTypeOf('object');
-		expect(listPaginationRouting.send?.paginate).toBe('={{ !$parameter.limit }}');
+		expect(listPaginationRouting.send?.paginate).toBe('={{ $parameter.returnAll }}');
 	});
 
 	it('filtersCollection is an INodeProperties object', () => {

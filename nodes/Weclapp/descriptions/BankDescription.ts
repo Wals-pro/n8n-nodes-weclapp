@@ -1,6 +1,6 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { filtersCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
 import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 export const bankAccountOperations: INodeProperties[] = [
@@ -169,15 +169,7 @@ export const bankAccountFields: INodeProperties[] = [
 			},
 		],
 	},
-	{
-		...limitField,
-		displayOptions: {
-			show: {
-				resource: ['bankAccount'],
-				operation: ['list'],
-			},
-		},
-	},
+	...listLimitFields('bankAccount'),
 	{
 		...filtersCollection,
 		description: 'Filter bank accounts. Useful fields: accountHolder, creditInstitute, iban, active.',
@@ -436,15 +428,7 @@ export const bankTransactionFields: INodeProperties[] = [
 			},
 		},
 	},
-	{
-		...limitField,
-		displayOptions: {
-			show: {
-				resource: ['bankTransaction'],
-				operation: ['list'],
-			},
-		},
-	},
+	...listLimitFields('bankTransaction'),
 	{
 		...filtersCollection,
 		description:

@@ -2,7 +2,7 @@
  * Tests for SharedFields / GenericFunctions routing contract:
  *   #57 — filtersCollection preSend builds correct weclapp query params
  *   #58 — no displayOptions inside collection/fixedCollection children
- *   limit UX — single limitField routes as pageSize; listPaginationRouting gates auto-pagination
+ *   limit UX — returnAllField routes pageSize; listPaginationRouting gates auto-pagination
  *   B5    — additionalFieldsPreSend sends query projection to the API
  *   merge — mergeAdditionalProperties folds index-aligned response block onto rows
  *   in/notin CSV convenience — buildFilterParams normalises value forms
@@ -23,6 +23,7 @@ import {
 	additionalFields,
 	additionalFieldsPreSend,
 	limitField,
+	returnAllField,
 	listPaginationRouting,
 	paginationConfig,
 } from '../../nodes/Weclapp/SharedFields';
@@ -493,28 +494,39 @@ describe('no displayOptions in collection/fixedCollection children (#58)', () =>
 });
 
 // ---------------------------------------------------------------------------
-// limit UX — single limitField routes as pageSize
+// limit UX — returnAll carries the pageSize routing, limit is a plain number
 // ---------------------------------------------------------------------------
 
-describe('limitField routing', () => {
+describe('returnAllField routing', () => {
 	it('routes send.type = query', () => {
-		expect(limitField.routing?.send?.type).toBe('query');
+		expect(returnAllField.routing?.send?.type).toBe('query');
 	});
 
 	it('routes to the pageSize property', () => {
-		expect(limitField.routing?.send?.property).toBe('pageSize');
+		expect(returnAllField.routing?.send?.property).toBe('pageSize');
 	});
 
-	it('routing value expression falls back to 1000 when limit is 0/empty', () => {
-		expect(limitField.routing?.send?.value).toBe('={{ $value > 0 ? $value : 1000 }}');
+	it('sends pageSize 1000 when returning all, otherwise the Limit value', () => {
+		expect(returnAllField.routing?.send?.value).toBe('={{ $value ? 1000 : $parameter.limit }}');
 	});
 
-	it('defaults to 0 (return all)', () => {
-		expect(limitField.default).toBe(0);
+	it('defaults to false', () => {
+		expect(returnAllField.default).toBe(false);
+	});
+});
+
+describe('limitField', () => {
+	it('defaults to 50 per n8n convention', () => {
+		expect(limitField.default).toBe(50);
 	});
 
-	it('has minValue 0', () => {
-		expect(limitField.typeOptions?.minValue).toBe(0);
+	it('has minValue 1 and maxValue 1000', () => {
+		expect(limitField.typeOptions?.minValue).toBe(1);
+		expect(limitField.typeOptions?.maxValue).toBe(1000);
+	});
+
+	it('carries no routing of its own', () => {
+		expect(limitField.routing).toBeUndefined();
 	});
 });
 
@@ -527,8 +539,8 @@ describe('listPaginationRouting', () => {
 		expect(listPaginationRouting.operations?.pagination).toBe(paginationConfig);
 	});
 
-	it('paginate runs only when limit is empty/0', () => {
-		expect(listPaginationRouting.send?.paginate).toBe('={{ !$parameter.limit }}');
+	it('paginate runs only when Return All is on', () => {
+		expect(listPaginationRouting.send?.paginate).toBe('={{ $parameter.returnAll }}');
 	});
 });
 

@@ -1,6 +1,6 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { additionalFields, filtersCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
 import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ─── Shared postReceive helpers ──────────────────────────────────────────────
@@ -73,10 +73,7 @@ export const tagOperations: INodeProperties[] = [
 
 export const tagFields: INodeProperties[] = [
 	// ── List ──────────────────────────────────────────────────────────────────
-	{
-		...limitField,
-		displayOptions: { show: { resource: ['tag'], operation: ['list'] } },
-	},
+	...listLimitFields('tag'),
 	{
 		...filtersCollection,
 		displayOptions: { show: { resource: ['tag'], operation: ['list'] } },
@@ -194,10 +191,7 @@ export const unitOperations: INodeProperties[] = [
 
 export const unitFields: INodeProperties[] = [
 	// ── List ──────────────────────────────────────────────────────────────────
-	{
-		...limitField,
-		displayOptions: { show: { resource: ['unit'], operation: ['list'] } },
-	},
+	...listLimitFields('unit'),
 	{
 		...filtersCollection,
 		displayOptions: { show: { resource: ['unit'], operation: ['list'] } },
@@ -323,10 +317,7 @@ export const userOperations: INodeProperties[] = [
 
 export const userFields: INodeProperties[] = [
 	// ── List ──────────────────────────────────────────────────────────────────
-	{
-		...limitField,
-		displayOptions: { show: { resource: ['user'], operation: ['list'] } },
-	},
+	...listLimitFields('user'),
 	{
 		...filtersCollection,
 		displayOptions: { show: { resource: ['user'], operation: ['list'] } },
@@ -503,12 +494,7 @@ export const customAttributeDefinitionOperations: INodeProperties[] = [
 
 export const customAttributeDefinitionFields: INodeProperties[] = [
 	// ── List ──────────────────────────────────────────────────────────────────
-	{
-		...limitField,
-		displayOptions: {
-			show: { resource: ['customAttributeDefinition'], operation: ['list'] },
-		},
-	},
+	...listLimitFields('customAttributeDefinition'),
 	{
 		...filtersCollection,
 		displayOptions: {

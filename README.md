@@ -59,7 +59,7 @@ Details: [docs/usage.md — Authentication](docs/usage.md#authentication)
 
 1. Add a **weclapp** node.
 2. **Resource** → `Article`, **Operation** → `Get Many`.
-3. Leave **Limit** empty (`0`) to fetch all pages, or set a cap.
+3. Enable **Return All** to fetch every page, or leave it off and set a **Limit**.
 4. Optionally add a **Filter**, e.g. `status` / `Equals` / `ACTIVE`.
 
 Importable example: [docs/examples/article-list.json](docs/examples/article-list.json)
@@ -93,7 +93,7 @@ Importable example: [docs/examples/article-list.json](docs/examples/article-list
 
 Things this node does that are worth knowing before you build on it:
 
-- **Limit / pagination.** Every Get Many has a single **Limit** field. Empty or `0` fetches **all** pages automatically (1000 records per request); a value > 0 caps the result.
+- **Limit / pagination.** Every Get Many has the standard **Return All** toggle plus **Limit** (default `50`, max `1000` — weclapp's per-page ceiling). Return All paginates automatically at 1000 records per request.
 - **Filters.** Field / operator / value rows support all 14 weclapp filter suffixes (`-eq`, `-ne`, `-in`, `-null`, …). `in`/`notin` accept comma lists (`A,B,C`). For OR and parenthesized logic, use **Raw Filter Expression** — it passes a verbatim weclapp `filter=` string.
 - **Projection.** *Additional Fields* → `properties`, `includeReferencedEntities`, `additionalProperties`, `serializeNulls` are sent as query parameters. `additionalProperties` results (e.g. shipment `availability`) are merged onto each row under `json.additionalProperties`.
 - **Updates are partial.** Update sends `PUT` with `ignoreMissingProperties=true`. No prior `version` fetch needed; only the fields you send change. A body of `{ "status": "DELIVERY_NOTE_PRINTED" }` is a valid, complete update.

@@ -1,6 +1,6 @@
 import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { additionalFields, filtersCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
 import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ---------------------------------------------------------------------------
@@ -271,15 +271,7 @@ export const productionOrderFields: INodeProperties[] = [
 	},
 
 	// ── List: Limit ────────────────────────────────────────────────────────
-	{
-		...limitField,
-		displayOptions: {
-			show: {
-				resource: ['productionOrder'],
-				operation: ['list'],
-			},
-		},
-	},
+	...listLimitFields('productionOrder'),
 
 	// ── List: Simplify ─────────────────────────────────────────────────────
 	{

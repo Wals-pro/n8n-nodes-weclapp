@@ -2,6 +2,56 @@
 
 All notable changes to `@wals-pro/n8n-nodes-weclapp` are documented here.
 
+## [0.4.0] - 2026-08-03
+
+Verification-readiness release: the package now passes `@n8n/scan-community-package`,
+the same gate n8n applies when reviewing a node for verified-community-node status.
+
+### Breaking
+
+- **Get Many now uses n8n's standard Return All + Limit pair.** The single-Limit UX
+  (empty/`0` = return all) is gone. **Return All** off (default) fetches up to
+  **Limit** records; Limit defaults to `50` and accepts `1`–`1000` (weclapp's
+  per-page ceiling). **Return All** on paginates automatically at 1000 per page.
+  Workflows that relied on `limit: 0` to fetch everything must set `returnAll: true`.
+
+  Reason: the scan gate enforces n8n's limit convention (default 50, minimum 1,
+  description `Max number of results to return`) and runs ESLint with
+  `allowInlineConfig: false`, so the inline rule disables added in 0.3.0 had no
+  effect on it. `maxValue: 1000` also fixes a latent bug — a Limit above 1000 was
+  previously sent verbatim as `pageSize`, which weclapp rejects.
+
+### Fixed
+
+- `inputs`/`outputs` use `NodeConnectionTypes.Main` instead of the `'main'` string
+  literal, on both the action and trigger node (scan gate:
+  `@n8n/community-nodes/node-connection-type-literal`).
+- weclapp Trigger declares the required `subtitle` (scan gate:
+  `@n8n/community-nodes/require-node-description-fields`); it shows the subscribed
+  entity name.
+- CI runs on Node 22. `npm ci` could not complete on Node 20 — `n8n-workflow`
+  pulls in `@n8n/expression-runtime` → `isolated-vm`, which requires Node ≥ 22 —
+  so every CI run on `main` since 0.3.0 failed at install. `.nvmrc` bumped to
+  match. `engines.node` stays at `>=20.15`: the published package does not carry
+  that dependency, since `n8n-workflow` is a peer dependency.
+- The community-package scan moved from `ci.yml` to `publish.yml`. It was invoked
+  as `npx @n8n/scan-community-package .`, but the scanner resolves a *published*
+  package name from npm and verifies its provenance attestation, so a local path
+  could never work. It now runs post-publish against the released version.
+- Removed a duplicate `publishConfig` key from `package.json`.
+
+### Removed
+
+- The "Built by Wals-pro / weclapp MCP server" notice at the top of both nodes'
+  parameter panels. Promotional content in the node UI is a review risk, and
+  attribution already lives in `package.json` (`author`, `homepage`, `funding`)
+  and the README.
+
+### Changed
+
+- Node descriptions state what the node does, without the maintainer attribution
+  suffix.
+
 ## [0.3.2] - 2026-07-05
 
 ### Changed

@@ -231,63 +231,88 @@ export async function emptyJsonBodyPreSend(
 // ---------------------------------------------------------------------------
 
 /**
- * Single Limit field used by every List operation. Spread into a resource
- * descriptor's fields: `{ ...limitField, displayOptions: { show: { resource, operation:['list'] } } }`.
+ * n8n's standard "Return All" toggle for List operations.
  *
- * UX contract (replaces the old returnAll+limit pair):
- *   - Limit > 0  → return up to that many rows. pageSize is set to the limit,
- *     so a single request suffices for limit ≤ 1000.
- *   - Limit = 0 / empty → return ALL rows. pageSize is forced to 1000 and the
- *     list op paginates automatically (see listPaginationRouting).
+ * UX contract (the pair returnAll + limit, per n8n's UX guidelines):
+ *   - Return All off → a single request with `pageSize` = Limit (≤ 1000, the
+ *     weclapp API maximum for a single page).
+ *   - Return All on  → `pageSize` is forced to 1000 and the list op paginates
+ *     automatically until weclapp returns a short page (see listPaginationRouting).
  *
- * The paginate gate lives on the list op (listPaginationRouting), keyed on
- * `!$parameter.limit`, so there is no separate "Return All" toggle.
+ * The `pageSize` routing lives here rather than on limitField because Limit is
+ * hidden when Return All is on, and hidden properties contribute no routing.
  */
-/*
- * The three `*-for-limit` lint rules enforce n8n's standard limit convention
- * (default 50, min 1, description "Max number of results to return"), which
- * assumes the returnAll+limit pair. We deliberately deviate: a single Limit
- * where empty/0 means "return all" with implicit pagination. Disabling these
- * three rules for this field only is intentional.
- */
-/* eslint-disable n8n-nodes-base/node-param-default-wrong-for-limit, n8n-nodes-base/node-param-description-wrong-for-limit, n8n-nodes-base/node-param-min-value-wrong-for-limit */
-export const limitField: INodeProperties = {
-	displayName: 'Limit',
-	name: 'limit',
-	type: 'number',
-	default: 0,
-	description:
-		'Max number of results to return. Leave empty (0) to return ALL results — the node paginates automatically.',
-	typeOptions: {
-		minValue: 0,
-	},
+export const returnAllField: INodeProperties = {
+	displayName: 'Return All',
+	name: 'returnAll',
+	type: 'boolean',
+	default: false,
+	description: 'Whether to return all results or only up to a given limit',
 	routing: {
 		send: {
 			type: 'query',
 			property: 'pageSize',
-			// limit > 0 → page of that size (single request for ≤1000);
-			// limit empty/0 → 1000 per page while the paginator walks all pages.
-			value: '={{ $value > 0 ? $value : 1000 }}',
+			value: '={{ $value ? 1000 : $parameter.limit }}',
 		},
 	},
 };
-/* eslint-enable n8n-nodes-base/node-param-default-wrong-for-limit, n8n-nodes-base/node-param-description-wrong-for-limit, n8n-nodes-base/node-param-min-value-wrong-for-limit */
 
 /**
- * Routing fragment enabling implicit auto-pagination on a List operation.
+ * Companion Limit field, shown only while Return All is off. Follows n8n's
+ * limit convention (default 50, minimum 1, canonical description) — the
+ * verified-community-node scan gate enforces all three and ignores inline
+ * eslint-disable comments.
+ *
+ * maxValue is 1000 because that is weclapp's per-page ceiling; larger result
+ * sets are served by Return All, which paginates.
+ */
+export const limitField: INodeProperties = {
+	displayName: 'Limit',
+	name: 'limit',
+	type: 'number',
+	default: 50,
+	description: 'Max number of results to return',
+	typeOptions: {
+		minValue: 1,
+		maxValue: 1000,
+	},
+};
+
+/**
+ * Builds the returnAll + limit pair for one resource's List operation, already
+ * scoped with displayOptions. Spread into a descriptor's fields array:
+ *   ...listLimitFields('article')
+ *
+ * Limit additionally hides behind `returnAll: [false]`, so the two fields never
+ * show at once.
+ */
+export const listLimitFields = (resource: string, operation = 'list'): INodeProperties[] => [
+	{
+		...returnAllField,
+		displayOptions: { show: { resource: [resource], operation: [operation] } },
+	},
+	{
+		...limitField,
+		displayOptions: {
+			show: { resource: [resource], operation: [operation], returnAll: [false] },
+		},
+	},
+];
+
+/**
+ * Routing fragment enabling auto-pagination on a List operation.
  * Spread into the list op's `routing`, alongside `request` and `output`:
  *   routing: { request: {...}, ...listPaginationRouting, output: {...} }
  *
  * `send.paginate` is a boolean-valued expression: pagination runs only when
- * `limit` is empty/0 (i.e. "return all"). When a limit is set, paginate is
- * false and the single request uses pageSize = limit (from limitField).
+ * Return All is on. Otherwise the single request uses pageSize = Limit.
  */
 export const listPaginationRouting: Pick<INodePropertyRouting, 'operations' | 'send'> = {
 	operations: {
 		pagination: paginationConfig,
 	},
 	send: {
-		paginate: '={{ !$parameter.limit }}',
+		paginate: '={{ $parameter.returnAll }}',
 	},
 };
 

@@ -3,7 +3,7 @@ import type { INodeProperties } from 'n8n-workflow';
 import {
 	additionalFields,
 	filtersCollection,
-	limitField,
+	listLimitFields,
 	listPaginationRouting,
 	simplifyField,
 } from '../SharedFields';
@@ -423,10 +423,7 @@ export const purchaseOrderFields: INodeProperties[] = [
 	},
 
 	// ── List: Limit ──────────────────────────────────────────────────────────
-	{
-		...limitField,
-		displayOptions: { show: { resource: ['purchaseOrder'], operation: ['list'] } },
-	},
+	...listLimitFields('purchaseOrder'),
 
 	// ── List: Filterable fields ──────────────────────────────────────────────
 	{

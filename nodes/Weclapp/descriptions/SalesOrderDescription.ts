@@ -4,7 +4,7 @@ import {
 	additionalFields,
 	customAttributesField,
 	filtersCollection,
-	limitField,
+	listLimitFields,
 	listPaginationRouting,
 	simplifyField,
 } from '../SharedFields';
@@ -595,10 +595,7 @@ export const salesOrderFields: INodeProperties[] = [
 	},
 
 	// ── List: pagination + filters ────────────────────────────────────────────
-	{
-		...limitField,
-		displayOptions: { show: { resource: ['salesOrder'], operation: ['list'] } },
-	},
+	...listLimitFields('salesOrder'),
 	{
 		...filtersCollection,
 		description:

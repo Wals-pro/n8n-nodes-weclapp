@@ -1,6 +1,6 @@
 import type { IDataObject, IHttpRequestOptions, INodeProperties } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { additionalFields, filtersCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
 import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 /**
@@ -331,15 +331,7 @@ export const warehouseFields: INodeProperties[] = [
 	},
 
 	// Limit for list
-	{
-		...limitField,
-		displayOptions: {
-			show: {
-				resource: ['warehouse'],
-				operation: ['list'],
-			},
-		},
-	},
+	...listLimitFields('warehouse'),
 
 	// Quick-filter by name (string equality)
 	{
@@ -467,15 +459,7 @@ export const warehouseStockFields: INodeProperties[] = [
 		},
 	},
 
-	{
-		...limitField,
-		displayOptions: {
-			show: {
-				resource: ['warehouseStock'],
-				operation: ['list'],
-			},
-		},
-	},
+	...listLimitFields('warehouseStock'),
 
 	{
 		displayName: 'Filter by Warehouse',
@@ -859,15 +843,7 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 		],
 	},
 
-	{
-		...limitField,
-		displayOptions: {
-			show: {
-				resource: ['warehouseStockMovement'],
-				operation: ['list'],
-			},
-		},
-	},
+	...listLimitFields('warehouseStockMovement'),
 
 	{
 		displayName: 'Filter by Article',

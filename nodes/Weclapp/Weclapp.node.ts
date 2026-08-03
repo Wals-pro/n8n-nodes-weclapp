@@ -1,4 +1,5 @@
 import type { IDataObject, IExecuteFunctions, INodeExecutionData, INodeType, INodeTypeDescription } from 'n8n-workflow';
+import { NodeConnectionTypes } from 'n8n-workflow';
 
 import { resources } from './descriptions/index';
 import { loadOptions, listSearch } from './methods/loadOptions';
@@ -19,12 +20,12 @@ export class Weclapp implements INodeType {
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-		description: 'Interact with the weclapp ERP API — CRUD, entity actions, binary downloads, and webhooks. Maintained by Wals-pro (wals.pro).',
+		description: 'Interact with the weclapp ERP API — CRUD, entity actions, binary downloads, and webhooks',
 		defaults: {
 			name: 'weclapp',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionTypes.Main],
+		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
 				name: 'weclappApi',
@@ -40,12 +41,6 @@ export class Weclapp implements INodeType {
 			},
 		},
 		properties: [
-			{
-				displayName: 'Built by <a href="https://wals.pro" target="_blank">Wals-pro</a> — weclapp MCP server for AI assistants: <a href="https://weclapp-mcp.wals.pro" target="_blank">weclapp-mcp.wals.pro</a>',
-				name: 'walsproNotice',
-				type: 'notice',
-				default: '',
-			},
 			{
 				displayName: 'Resource',
 				name: 'resource',
