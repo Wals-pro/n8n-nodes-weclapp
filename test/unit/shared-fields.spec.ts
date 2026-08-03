@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import type { INodePropertyOptions } from 'n8n-workflow';
 import {
 	limitField,
+	returnAllField,
+	listLimitFields,
 	listPaginationRouting,
 	paginationConfig,
 	filtersCollection,
@@ -23,24 +25,77 @@ const operatorOptions = operatorField?.['options'] as INodePropertyOptions[] | u
 const operatorValues = operatorOptions?.map((o) => o.value) ?? [];
 
 // ---------------------------------------------------------------------------
-// limitField + listPaginationRouting (single-Limit UX, replaces returnAllOrLimit)
+// returnAllField + limitField + listPaginationRouting
+//
+// The verified-community-node scan gate enforces n8n's limit convention and
+// ignores inline eslint-disable comments, so Limit must stay at default 50,
+// minValue 1, description 'Max number of results to return'.
 // ---------------------------------------------------------------------------
 
 describe('limitField', () => {
-	it('is a single number field named limit defaulting to 0', () => {
+	it('is a number field named limit defaulting to 50', () => {
 		expect(limitField.name).toBe('limit');
 		expect(limitField.type).toBe('number');
-		expect(limitField.default).toBe(0);
+		expect(limitField.default).toBe(50);
 	});
 
-	it('has typeOptions.minValue = 0', () => {
-		expect(limitField.typeOptions?.minValue).toBe(0);
+	it('uses the conventional description the scan gate requires', () => {
+		expect(limitField.description).toBe('Max number of results to return');
 	});
 
-	it('routes send.type=query to pageSize with a fallback expression', () => {
-		expect(limitField.routing?.send?.type).toBe('query');
-		expect(limitField.routing?.send?.property).toBe('pageSize');
-		expect(limitField.routing?.send?.value).toBe('={{ $value > 0 ? $value : 1000 }}');
+	it('has typeOptions.minValue = 1 and maxValue = 1000 (weclapp page ceiling)', () => {
+		expect(limitField.typeOptions?.minValue).toBe(1);
+		expect(limitField.typeOptions?.maxValue).toBe(1000);
+	});
+
+	it('carries no routing — pageSize is sent by returnAllField', () => {
+		expect(limitField.routing).toBeUndefined();
+	});
+});
+
+describe('returnAllField', () => {
+	it('is a boolean named returnAll defaulting to false', () => {
+		expect(returnAllField.name).toBe('returnAll');
+		expect(returnAllField.type).toBe('boolean');
+		expect(returnAllField.default).toBe(false);
+	});
+
+	it('uses the conventional whether-description', () => {
+		expect(returnAllField.description).toBe(
+			'Whether to return all results or only up to a given limit',
+		);
+	});
+
+	it('routes pageSize: 1000 when returning all, otherwise the Limit value', () => {
+		expect(returnAllField.routing?.send?.type).toBe('query');
+		expect(returnAllField.routing?.send?.property).toBe('pageSize');
+		expect(returnAllField.routing?.send?.value).toBe('={{ $value ? 1000 : $parameter.limit }}');
+	});
+});
+
+describe('listLimitFields', () => {
+	it('returns the returnAll + limit pair scoped to the resource list op', () => {
+		const [returnAll, limit] = listLimitFields('article');
+
+		expect(returnAll.name).toBe('returnAll');
+		expect(returnAll.displayOptions?.show).toEqual({
+			resource: ['article'],
+			operation: ['list'],
+		});
+
+		expect(limit.name).toBe('limit');
+		expect(limit.displayOptions?.show).toEqual({
+			resource: ['article'],
+			operation: ['list'],
+			returnAll: [false],
+		});
+	});
+
+	it('accepts a non-default operation name', () => {
+		const [returnAll, limit] = listLimitFields('ticket', 'listComments');
+
+		expect(returnAll.displayOptions?.show?.['operation']).toEqual(['listComments']);
+		expect(limit.displayOptions?.show?.['operation']).toEqual(['listComments']);
 	});
 });
 
@@ -49,8 +104,8 @@ describe('listPaginationRouting', () => {
 		expect(listPaginationRouting.operations?.pagination).toBe(paginationConfig);
 	});
 
-	it('paginate gate is keyed on !$parameter.limit', () => {
-		expect(listPaginationRouting.send?.paginate).toBe('={{ !$parameter.limit }}');
+	it('paginate gate is keyed on $parameter.returnAll', () => {
+		expect(listPaginationRouting.send?.paginate).toBe('={{ $parameter.returnAll }}');
 	});
 });
 

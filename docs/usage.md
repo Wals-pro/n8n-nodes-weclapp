@@ -108,9 +108,9 @@ Field: createdDate   Operator: -ge   Value: 1700000000000
 
 ## Pagination
 
-- **Limit**: enter the maximum number of records to fetch. Leave it empty or set it to `0` to fetch **all** records — the node then paginates automatically (up to 100 pages × 1000 records = 100,000 records maximum).
-- There is no separate *Return All* toggle: an empty/zero Limit means "return all".
-- Page size is 1000 per page (the weclapp maximum).
+- **Return All** off (the default): one request fetches up to **Limit** records. Limit defaults to `50` and accepts `1`–`1000` (1000 is the weclapp per-page maximum).
+- **Return All** on: the node paginates automatically until weclapp returns a short page (up to 100 pages × 1000 records = 100,000 records maximum). The **Limit** field is hidden.
+- Page size is 1000 per page while returning all (the weclapp maximum).
 
 ---
 

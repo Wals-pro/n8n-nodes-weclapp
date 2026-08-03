@@ -16,7 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: ['20']
+        # Node 22+ is required for development: n8n-workflow pulls in
+        # @n8n/expression-runtime → isolated-vm, which fails to compile on
+        # Node 20. The published package itself still runs on Node ≥ 20.15
+        # (see engines) because n8n-workflow is a peer dependency there.
+        node-version: ['22']
 
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +42,3 @@ jobs:
 
       - name: Run tests
         run: npm run test
-
-      - name: Scan community package
-        run: npx @n8n/scan-community-package .

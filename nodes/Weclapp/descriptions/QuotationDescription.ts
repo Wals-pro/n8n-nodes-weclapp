@@ -1,6 +1,6 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { filtersCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
 import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -543,15 +543,7 @@ export const quotationFields: INodeProperties[] = [
 
 	// ── List: Limit ───────────────────────────────────────────────────────────
 
-	{
-		...limitField,
-		displayOptions: {
-			show: {
-				resource: ['quotation'],
-				operation: ['list'],
-			},
-		},
-	},
+	...listLimitFields('quotation'),
 
 	// ── List: Quick Filters (commonly needed fields) ──────────────────────────
 

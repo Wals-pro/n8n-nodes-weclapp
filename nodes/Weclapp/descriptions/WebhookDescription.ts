@@ -1,6 +1,6 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, limitField, listPaginationRouting, simplifyField } from '../SharedFields';
+import { additionalFields, filtersCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
 import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ─── Operation selector ───────────────────────────────────────────────────────
@@ -375,15 +375,7 @@ const updateFields: INodeProperties = {
 
 // ─── List: limit ──────────────────────────────────────────────────────────────
 
-const listLimit: INodeProperties = {
-	...limitField,
-	displayOptions: {
-		show: {
-			resource: ['webhook'],
-			operation: ['list'],
-		},
-	},
-};
+const listLimit: INodeProperties[] = listLimitFields('webhook');
 
 // ─── List: filters collection ─────────────────────────────────────────────────
 
@@ -433,7 +425,7 @@ export const webhookFields: INodeProperties[] = [
 	createAtUpdateField,
 	createAtDeleteField,
 	updateFields,
-	listLimit,
+	...listLimit,
 	listFilters,
 	listSimplify,
 	getAdditionalFields,

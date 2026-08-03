@@ -5,7 +5,7 @@ import type {
 	IWebhookFunctions,
 	IWebhookResponseData,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 /** Credential type name — kept as a const to prevent silent typos. */
 const CREDENTIAL_NAME = 'weclappApi';
@@ -49,13 +49,14 @@ export class WeclappTrigger implements INodeType {
 		},
 		group: ['trigger'],
 		version: 1,
+		subtitle: '={{$parameter["entityName"]}}',
 		description:
-			'Starts the workflow when a weclapp entity event fires. Automatically registers and removes the webhook subscription on workflow activate/deactivate. Maintained by Wals-pro (wals.pro).',
+			'Starts the workflow when a weclapp entity event fires. Automatically registers and removes the webhook subscription on workflow activate/deactivate.',
 		defaults: {
 			name: 'weclapp Trigger',
 		},
 		inputs: [],
-		outputs: ['main'],
+		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
 				name: CREDENTIAL_NAME,
@@ -73,12 +74,6 @@ export class WeclappTrigger implements INodeType {
 			},
 		],
 		properties: [
-			{
-				displayName: 'Built by <a href="https://wals.pro" target="_blank">Wals-pro</a> — weclapp MCP server for AI assistants: <a href="https://weclapp-mcp.wals.pro" target="_blank">weclapp-mcp.wals.pro</a>',
-				name: 'walsproNotice',
-				type: 'notice',
-				default: '',
-			},
 			{
 				displayName: 'Entity Name',
 				name: 'entityName',

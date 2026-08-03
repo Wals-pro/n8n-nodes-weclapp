@@ -99,3 +99,18 @@ jobs:
           npm run release
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify against the n8n community scan gate
+        # This is the same gate n8n runs during node verification: it resolves
+        # the package from npm, checks provenance, re-fetches the attested
+        # GitHub source and lints it with allowInlineConfig disabled. It can
+        # only run post-publish, which is why it lives here and not in ci.yml.
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PKG="@wals-pro/n8n-nodes-weclapp@${VERSION}"
+          for _ in 1 2 3 4 5 6; do
+            npm view "$PKG" version >/dev/null 2>&1 && break
+            echo "Waiting for npm to serve ${PKG}…"
+            sleep 20
+          done
+          npx --yes @n8n/scan-community-package@latest "$PKG"

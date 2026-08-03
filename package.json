@@ -1,6 +1,6 @@
 {
 	"name": "@wals-pro/n8n-nodes-weclapp",
-	"version": "0.3.2",
+	"version": "0.4.0",
 	"publishConfig": {
 		"access": "public"
 	},
@@ -30,9 +30,6 @@
 	},
 	"engines": {
 		"node": ">=20.15"
-	},
-	"publishConfig": {
-		"access": "public"
 	},
 	"scripts": {
 		"build": "n8n-node build",
