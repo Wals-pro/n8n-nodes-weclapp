@@ -7,19 +7,29 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [240, 300]
+      "position": [
+        240,
+        300
+      ]
     },
     {
       "parameters": {
         "resource": "salesOrder",
         "operation": "get",
-        "id": "={{ $json.salesOrderId }}"
+        "salesOrderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.salesOrderId }}"
+        }
       },
       "id": "c3d4e5f6-0003-0003-0003-000000000002",
       "name": "weclapp — Get Sales Order",
       "type": "@wals-pro/n8n-nodes-weclapp.weclapp",
-      "typeVersion": 1,
-      "position": [460, 300],
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ],
       "credentials": {
         "weclappApi": {
           "id": "1",
@@ -31,16 +41,21 @@
       "parameters": {
         "resource": "salesOrder",
         "operation": "update",
-        "id": "={{ $json.id }}",
-        "body": {
-          "status": "ORDER_CONFIRMATION_PRINTED"
-        }
+        "salesOrderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        },
+        "body": "{\"status\": \"ORDER_CONFIRMATION_PRINTED\"}"
       },
       "id": "c3d4e5f6-0003-0003-0003-000000000003",
       "name": "weclapp — Update Sales Order",
       "type": "@wals-pro/n8n-nodes-weclapp.weclapp",
-      "typeVersion": 1,
-      "position": [680, 300],
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ],
       "credentials": {
         "weclappApi": {
           "id": "1",

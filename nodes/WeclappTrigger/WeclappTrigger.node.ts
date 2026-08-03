@@ -63,6 +63,8 @@ export class WeclappTrigger implements INodeType {
 				required: true,
 			},
 		],
+		// Required by the community-node scan gate (node-usable-as-tool) even on
+		// trigger nodes.
 		usableAsTool: true,
 		webhooks: [
 			{

@@ -7,30 +7,44 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [240, 300]
+      "position": [
+        240,
+        300
+      ]
     },
     {
       "parameters": {
         "resource": "article",
-        "operation": "getMany",
+        "operation": "list",
         "returnAll": false,
         "limit": 50,
         "filters": {
           "filter": [
             {
               "field": "status",
-              "operator": "-eq",
+              "operator": "eq",
               "value": "ACTIVE"
             }
           ]
         },
-        "additionalFields": {}
+        "additionalFields": {},
+        "sort": {
+          "rule": [
+            {
+              "field": "lastModifiedDate",
+              "direction": "desc"
+            }
+          ]
+        }
       },
       "id": "a1b2c3d4-0001-0001-0001-000000000002",
       "name": "weclapp — Get Articles",
       "type": "@wals-pro/n8n-nodes-weclapp.weclapp",
-      "typeVersion": 1,
-      "position": [460, 300],
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ],
       "credentials": {
         "weclappApi": {
           "id": "1",

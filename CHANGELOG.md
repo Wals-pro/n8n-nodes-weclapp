@@ -2,6 +2,46 @@
 
 All notable changes to `@wals-pro/n8n-nodes-weclapp` are documented here.
 
+## [1.0.0] - 2026-08-03
+
+Stability commitment release, prepared for n8n verified-community-node
+submission. From 1.0.0 on this package follows semantic versioning: breaking
+changes only land in major releases, each with migration notes here. All
+changes in this release are backward compatible.
+
+### Added
+
+- **Sort on every Get Many.** A new optional **Sort** collection (field +
+  direction, multiple rules applied in order) on all 22 list operations,
+  sent as weclapp's `sort` query parameter (`-` prefix = descending).
+- **Resource locators for Tag, Unit, User, and Custom Attribute Definition**
+  (node typeVersion 2, the default for newly added nodes). ID / From List /
+  URL modes with server-side search, matching the other 14 resources.
+  Workflows saved on typeVersion 1 keep their plain string ID fields —
+  nothing breaks on upgrade.
+- Descriptions on all 23 Resource options — clearer in the UI and, since the
+  node is usable as an AI-Agent tool, model-readable tool documentation.
+- README: AI-Agent usage note (`N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true`
+  on self-hosted n8n); docs/usage.md: Sorting section.
+- npm keywords (crm, invoicing, inventory, sales-order, warehouse).
+
+### Fixed
+
+- **All five bundled example workflows were broken against the current
+  parameter schema** (`getMany` → `list`, `-eq` → `eq` filter operators, the
+  trigger example's `entityType`/`SALES_ORDER` → `entityName`/`salesOrder`,
+  party create's non-existent `body` object → flat fields, sales order
+  get/update's `id` → the `salesOrderId` resource locator). Examples now
+  import and run, use typeVersion 2, and demonstrate sorting.
+- Default resource is Article instead of Custom API Call — new users start
+  on a first-class resource, not the raw-API escape hatch.
+- The raw filter expression placeholder follows the `e.g.` convention.
+
+### Changed
+
+- README states the semver stability commitment and no longer claims the
+  node is unverified/Cloud-unavailable (wrong the moment verification lands).
+
 ## [0.4.0] - 2026-08-03
 
 Verification-readiness release: the package now passes `@n8n/scan-community-package`,

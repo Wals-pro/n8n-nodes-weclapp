@@ -1,6 +1,6 @@
 import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
 
-import { additionalFields, customAttributesField, filtersCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
+import { additionalFields, customAttributesField, filtersCollection, sortCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
 import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ─── Shared constants ─────────────────────────────────────────────────────────
@@ -321,6 +321,11 @@ const partyTypeFilterField: INodeProperties = {
 
 const listLimit: INodeProperties[] = listLimitFields('party');
 
+const listSort: INodeProperties = {
+	...sortCollection,
+	displayOptions: { show: { resource: ['party'], operation: ['list'] } },
+};
+
 const listFilters: INodeProperties = {
 	...filtersCollection,
 	description:
@@ -420,6 +425,7 @@ export const partyDescription: INodeProperties[] = [
 	partyIdField,
 	partyTypeFilterField,
 	...listLimit,
+	listSort,
 	listFilters,
 	listSimplify,
 	getAdditionalFields,

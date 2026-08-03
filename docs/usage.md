@@ -114,6 +114,21 @@ Field: createdDate   Operator: -ge   Value: 1700000000000
 
 ---
 
+## Sorting
+
+Every **Get Many** operation has a **Sort** collection. Each rule names an entity property and a direction; rules apply in the order you add them.
+
+Example — newest sales orders first, ties broken by order number:
+
+| Field | Direction |
+|---|---|
+| `createdDate` | Descending |
+| `orderNumber` | Ascending |
+
+This is sent as weclapp's `sort` query parameter (`sort=-createdDate,orderNumber` — `-` prefix means descending). Sorting matters when you use a **Limit**: "the 50 newest orders" needs `createdDate` Descending, otherwise weclapp returns the 50 oldest.
+
+---
+
 ## Updating Records
 
 ### Updates are version-free

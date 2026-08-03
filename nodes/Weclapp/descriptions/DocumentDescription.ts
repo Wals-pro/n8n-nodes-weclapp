@@ -1,6 +1,6 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
+import { additionalFields, filtersCollection, sortCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
 import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ─── documentType enum values ─────────────────────────────────────────────────
@@ -462,6 +462,16 @@ const listEntityId: INodeProperties = {
 // ─── List operation fields ────────────────────────────────────────────────────
 
 const listLimit: INodeProperties[] = listLimitFields('document');
+
+const listSort: INodeProperties = {
+	...sortCollection,
+	displayOptions: {
+		show: {
+			resource: ['document'],
+			operation: ['list'],
+		},
+	},
+};
 
 const listFilters: INodeProperties = {
 	...filtersCollection,
@@ -1000,6 +1010,7 @@ export const documentDescription: INodeProperties[] = [
 	listEntityId,
 	// List options
 	...listLimit,
+	listSort,
 	listFilters,
 	listSimplify,
 	listAdditionalFields,

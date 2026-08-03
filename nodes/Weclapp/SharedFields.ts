@@ -469,13 +469,112 @@ export const filtersCollection: INodeProperties = {
 						rows: 3,
 					},
 					default: '',
-					placeholder: '((shipped = true) or (fulfillmentProviderId null))',
+					placeholder: 'e.g. ((shipped = true) or (fulfillmentProviderId null))',
 					description:
 						"Raw weclapp filter= expression, sent verbatim as the API's `filter` query parameter. Supports OR / AND / parentheses per the weclapp filter grammar. Warning: mixing this with the field-operator filters above is not additive — prefer one approach per request.",
 				},
 			],
 		},
 	],
+};
+
+// ---------------------------------------------------------------------------
+// sortCollection
+// ---------------------------------------------------------------------------
+
+/**
+ * PreSend action for sortCollection.
+ *
+ * Reads the `sort` fixedCollection value and builds weclapp's `sort` query
+ * parameter: a comma-separated list of property names, `-`-prefixed for
+ * descending (e.g. `sort=-createdDate,articleNumber`). Rules apply in the
+ * order the user added them. Empty/blank field names are skipped; when no
+ * rule survives, the request is returned unchanged.
+ */
+export async function sortPreSend(
+	this: { getNodeParameter: (name: string, fallback?: unknown) => unknown },
+	requestOptions: IHttpRequestOptions,
+): Promise<IHttpRequestOptions> {
+	// fixedCollection shape: { rule: Array<{ field, direction }> }
+	const sortParam = this.getNodeParameter('sort', {}) as {
+		rule?: Array<{ field?: string; direction?: 'asc' | 'desc' }>;
+	};
+
+	const expression = (sortParam?.rule ?? [])
+		.map((rule) => ({ field: rule?.field?.trim(), direction: rule?.direction }))
+		.filter((rule) => rule.field)
+		.map((rule) => (rule.direction === 'desc' ? `-${rule.field}` : rule.field))
+		.join(',');
+
+	if (!expression) {
+		return requestOptions;
+	}
+
+	return {
+		...requestOptions,
+		qs: {
+			...(requestOptions.qs ?? {}),
+			sort: expression,
+		},
+	};
+}
+
+/**
+ * Sort fixedCollection for List operations, mirroring filtersCollection's
+ * wiring: spread into a descriptor's fields with per-resource displayOptions,
+ * `{ ...sortCollection, displayOptions: { show: { resource, operation:['list'] } } }`.
+ * The preSend on the top-level property builds the weclapp `sort` query param.
+ */
+export const sortCollection: INodeProperties = {
+	displayName: 'Sort',
+	name: 'sort',
+	type: 'fixedCollection',
+	placeholder: 'Add sort rule',
+	default: {},
+	typeOptions: {
+		multipleValues: true,
+	},
+	routing: {
+		send: {
+			preSend: [sortPreSend],
+		},
+	},
+	options: [
+		{
+			displayName: 'Sort Rule',
+			name: 'rule',
+			values: [
+				{
+					displayName: 'Field',
+					name: 'field',
+					type: 'string',
+					required: true,
+					default: '',
+					description: 'Entity property name to sort by (e.g., createdDate, articleNumber)',
+					placeholder: 'e.g. createdDate',
+				},
+				{
+					displayName: 'Direction',
+					name: 'direction',
+					type: 'options',
+					default: 'asc',
+					options: [
+						{
+							name: 'Ascending',
+							value: 'asc',
+							description: 'Smallest value first (A→Z, oldest date first)',
+						},
+						{
+							name: 'Descending',
+							value: 'desc',
+							description: 'Largest value first (Z→A, newest date first)',
+						},
+					],
+				},
+			],
+		},
+	],
+	description: 'Sort the results by one or more entity properties, applied in order',
 };
 
 // ---------------------------------------------------------------------------

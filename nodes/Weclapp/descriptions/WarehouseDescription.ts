@@ -1,6 +1,6 @@
 import type { IDataObject, IHttpRequestOptions, INodeProperties } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
+import { additionalFields, filtersCollection, sortCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
 import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 /**
@@ -354,6 +354,15 @@ export const warehouseFields: INodeProperties[] = [
 	},
 
 	{
+		...sortCollection,
+		displayOptions: {
+			show: {
+				resource: ['warehouse'],
+				operation: ['list'],
+			},
+		},
+	},
+	{
 		...filtersCollection,
 		displayOptions: {
 			show: {
@@ -499,6 +508,15 @@ export const warehouseStockFields: INodeProperties[] = [
 		},
 	},
 
+	{
+		...sortCollection,
+		displayOptions: {
+			show: {
+				resource: ['warehouseStock'],
+				operation: ['list'],
+			},
+		},
+	},
 	{
 		...filtersCollection,
 		displayOptions: {
@@ -940,6 +958,15 @@ export const warehouseStockMovementFields: INodeProperties[] = [
 		},
 	},
 
+	{
+		...sortCollection,
+		displayOptions: {
+			show: {
+				resource: ['warehouseStockMovement'],
+				operation: ['list'],
+			},
+		},
+	},
 	{
 		...filtersCollection,
 		displayOptions: {
