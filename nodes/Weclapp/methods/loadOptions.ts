@@ -206,6 +206,40 @@ export const listSearch: Record<
 		'name',
 		(item) => `${item.name ?? item.id} (${item.id})`,
 	),
+
+	searchTags: makeListSearch(
+		'/tag',
+		'id,name',
+		'name',
+		(item) => `${item.name ?? item.id} (${item.id})`,
+	),
+
+	searchUnits: makeListSearch(
+		'/unit',
+		'id,name,description',
+		'name',
+		(item) => `${item.name ?? item.id} (${item.id})`,
+	),
+
+	searchUsers: makeListSearch(
+		'/user',
+		'id,username,firstName,lastName,email',
+		'lastName',
+		(item) => {
+			const fullName = [item.firstName, item.lastName].filter(Boolean).join(' ');
+			return `${fullName || item.username || item.id} (${item.id})`;
+		},
+	),
+
+	searchCustomAttributeDefinitions: makeListSearch(
+		'/customAttributeDefinition',
+		'id,attributeKey,label,attributeEntityType',
+		'attributeKey',
+		(item) => {
+			const label = [item.attributeKey, item.label].filter(Boolean).join(' — ');
+			return `${label || item.id} (${item.id})`;
+		},
+	),
 };
 
 // ---------------------------------------------------------------------------

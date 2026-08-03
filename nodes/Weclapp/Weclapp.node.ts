@@ -18,7 +18,12 @@ export class Weclapp implements INodeType {
 			dark: 'file:weclapp.dark.svg',
 		},
 		group: ['transform'],
-		version: 1,
+		// typeVersion 2 swaps the Tag/Unit/User/Custom Attribute Definition ID
+		// strings for resource locators (see versionedIdField in
+		// descriptions/TagUnitUserDescription.ts). Workflows saved on
+		// typeVersion 1 keep the plain string fields.
+		version: [1, 2],
+		defaultVersion: 2,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 		description: 'Interact with the weclapp ERP API — CRUD, entity actions, binary downloads, and webhooks',
 		defaults: {
@@ -51,30 +56,37 @@ export class Weclapp implements INodeType {
 					{
 						name: 'Article',
 						value: 'article',
+						description: 'Products and services, including prices, stock-relevant flags, and images',
 					},
 					{
 						name: 'Bank Account',
 						value: 'bankAccount',
+						description: 'Company bank accounts used for payment runs and reconciliation',
 					},
 					{
 						name: 'Bank Transaction',
 						value: 'bankTransaction',
+						description: 'Imported bank statement lines for payment reconciliation',
 					},
 					{
 						name: 'Comment',
 						value: 'comment',
+						description: 'Comments attached to any weclapp entity',
 					},
 					{
 						name: 'Custom API Call',
 						value: 'customApiCall',
+						description: 'Raw call to any weclapp API endpoint not covered by a dedicated resource',
 					},
 					{
 						name: 'Custom Attribute Definition',
 						value: 'customAttributeDefinition',
+						description: 'Tenant-specific custom field definitions',
 					},
 					{
 						name: 'Document',
 						value: 'document',
+						description: 'Files attached to entities — upload, download, versions',
 					},
 					{
 						name: 'Party',
@@ -84,65 +96,80 @@ export class Weclapp implements INodeType {
 					{
 						name: 'Production Order',
 						value: 'productionOrder',
+						description: 'Manufacturing orders with material and time bookings',
 					},
 					{
 						name: 'Purchase Invoice',
 						value: 'purchaseInvoice',
+						description: 'Incoming supplier invoices, including payment application',
 					},
 					{
 						name: 'Purchase Order',
 						value: 'purchaseOrder',
+						description: 'Orders placed with suppliers',
 					},
 					{
 						name: 'Quotation',
 						value: 'quotation',
+						description: 'Sales quotations, including PDF creation and order conversion',
 					},
 					{
 						name: 'Sales Invoice',
 						value: 'salesInvoice',
+						description: 'Outgoing customer invoices, including PDF creation',
 					},
 					{
 						name: 'Sales Order',
 						value: 'salesOrder',
+						description: 'Customer orders and their fulfillment lifecycle',
 					},
 					{
 						name: 'Shipment',
 						value: 'shipment',
+						description: 'Outgoing and incoming shipments, including PDF documents',
 					},
 					{
 						name: 'Tag',
 						value: 'tag',
+						description: 'Labels for organizing entities',
 					},
 					{
 						name: 'Ticket',
 						value: 'ticket',
+						description: 'Support and service tickets',
 					},
 					{
 						name: 'Unit',
 						value: 'unit',
+						description: 'Measurement units for articles',
 					},
 					{
 						name: 'User',
 						value: 'user',
+						description: 'User accounts of the weclapp tenant',
 					},
 					{
 						name: 'Warehouse',
 						value: 'warehouse',
+						description: 'Warehouses and storage locations',
 					},
 					{
 						name: 'Warehouse Stock',
 						value: 'warehouseStock',
+						description: 'Current stock levels per article and warehouse',
 					},
 					{
 						name: 'Warehouse Stock Movement',
 						value: 'warehouseStockMovement',
+						description: 'Historical stock movements',
 					},
 					{
 						name: 'Webhook',
 						value: 'webhook',
+						description: 'Webhook subscriptions (see also the weclapp Trigger node)',
 					},
 				],
-				default: 'customApiCall',
+				default: 'article',
 			},
 			// Resource-specific fields are spread from descriptions/index.ts
 			...resources,

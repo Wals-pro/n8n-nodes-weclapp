@@ -1,6 +1,6 @@
 import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
+import { additionalFields, filtersCollection, sortCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
 import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ---------------------------------------------------------------------------
@@ -287,6 +287,15 @@ export const productionOrderFields: INodeProperties[] = [
 	// ── List: Filters ──────────────────────────────────────────────────────
 	// Filterable fields: productionOrderNumber, status, articleId,
 	// orderDate (targetStartDate), productionQuantity (targetQuantity)
+	{
+		...sortCollection,
+		displayOptions: {
+			show: {
+				resource: ['productionOrder'],
+				operation: ['list'],
+			},
+		},
+	},
 	{
 		...filtersCollection,
 		displayOptions: {

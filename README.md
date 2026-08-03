@@ -6,7 +6,7 @@
 
 n8n community node for the [weclapp](https://www.weclapp.com) ERP REST API (v2). Covers 16 resources with CRUD and entity actions, a generic Custom API Call operation for everything else, and a webhook trigger node. Maintained by [Wals-pro](https://wals.pro), a weclapp implementation partner — we build and run weclapp automations for customers, and this node is what our own workflows use.
 
-**Status: work in progress (pre-1.0).** The node is in productive use at Wals-pro, but resources and parameters are still evolving; minor versions can contain breaking changes. Known gaps are tracked in [GitHub Issues](https://github.com/Wals-pro/n8n-nodes-weclapp/issues), changes in the [CHANGELOG](CHANGELOG.md). This is a community project — issues, pull requests, and first-time contributors are very welcome, see [Contributing](#contributing).
+**Status: stable.** The node is in productive use at Wals-pro and follows [semantic versioning](https://semver.org): breaking changes only land in major releases, each documented with migration notes in the [CHANGELOG](CHANGELOG.md). Known gaps are tracked in [GitHub Issues](https://github.com/Wals-pro/n8n-nodes-weclapp/issues). This is a community project — issues, pull requests, and first-time contributors are very welcome, see [Contributing](#contributing).
 
 **Package name:** install **`@wals-pro/n8n-nodes-weclapp`**. The unscoped `n8n-nodes-weclapp` on npm is an unrelated package by a different author — that name was taken before this project existed, so this node is published under the `@wals-pro` scope.
 
@@ -14,9 +14,10 @@ n8n community node for the [weclapp](https://www.weclapp.com) ERP REST API (v2).
 
 ## Requirements
 
-- Self-hosted n8n with community nodes enabled (`N8N_COMMUNITY_PACKAGES_ENABLED=true`). The node is not verified yet, so it is not installable on n8n Cloud.
+- n8n with community nodes enabled — self-hosted (`N8N_COMMUNITY_PACKAGES_ENABLED=true`), or n8n Cloud once the node is available there.
 - A weclapp API v2 token.
 - Node.js ≥ 20.15 (only for manual npm installs).
+- To use the node as a tool for AI Agents on self-hosted n8n, additionally set `N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true`.
 
 ## Installation
 
@@ -94,6 +95,8 @@ Importable example: [docs/examples/article-list.json](docs/examples/article-list
 Things this node does that are worth knowing before you build on it:
 
 - **Limit / pagination.** Every Get Many has the standard **Return All** toggle plus **Limit** (default `50`, max `1000` — weclapp's per-page ceiling). Return All paginates automatically at 1000 records per request.
+- **Sort.** Every Get Many has a **Sort** collection — multiple field/direction rules, applied in order, sent as weclapp's `sort` parameter (`-` prefix for descending).
+- **AI Agents.** Both nodes are usable as AI-Agent tools. Record pickers (`From List`), resource and operation descriptions are written to be model-readable. Self-hosted n8n needs `N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true`.
 - **Filters.** Field / operator / value rows support all 14 weclapp filter suffixes (`-eq`, `-ne`, `-in`, `-null`, …). `in`/`notin` accept comma lists (`A,B,C`). For OR and parenthesized logic, use **Raw Filter Expression** — it passes a verbatim weclapp `filter=` string.
 - **Projection.** *Additional Fields* → `properties`, `includeReferencedEntities`, `additionalProperties`, `serializeNulls` are sent as query parameters. `additionalProperties` results (e.g. shipment `availability`) are merged onto each row under `json.additionalProperties`.
 - **Updates are partial.** Update sends `PUT` with `ignoreMissingProperties=true`. No prior `version` fetch needed; only the fields you send change. A body of `{ "status": "DELIVERY_NOTE_PRINTED" }` is a valid, complete update.

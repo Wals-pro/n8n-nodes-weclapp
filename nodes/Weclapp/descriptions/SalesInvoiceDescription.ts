@@ -1,6 +1,6 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { customAttributesField, filtersCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
+import { customAttributesField, filtersCollection, sortCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
 import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ---------------------------------------------------------------------------
@@ -578,6 +578,15 @@ export const salesInvoiceFields: INodeProperties[] = [
 	},
 
 	// Advanced filters collection for list
+	{
+		...sortCollection,
+		displayOptions: {
+			show: {
+				resource: ['salesInvoice'],
+				operation: ['list'],
+			},
+		},
+	},
 	{
 		...filtersCollection,
 		displayOptions: {

@@ -1,6 +1,6 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { additionalFields, filtersCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
+import { additionalFields, filtersCollection, sortCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
 import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ─── Shared postReceive helpers ──────────────────────────────────────────────
@@ -10,6 +10,99 @@ const rootProperty = [{ type: 'rootProperty' as const, properties: { property: '
 
 /** Return {deleted: true} after a 204 delete. */
 const setDeleted = [{ type: 'set' as const, properties: { value: '{"deleted":true}' } }];
+
+// ─── Version-gated ID fields ─────────────────────────────────────────────────
+
+/**
+ * Build the version-gated ID field pair for one resource.
+ *
+ * Node typeVersion 1 (workflows created before 1.0.0) keeps the original plain
+ * string ID field. typeVersion 2 (the default for newly added nodes) shows a
+ * resourceLocator with From-list search instead, matching the other resources.
+ * Both variants share the parameter name, so routing expressions like
+ * `{{$parameter["tagId"]}}` work unchanged — n8n resolves a resourceLocator
+ * to its extracted value in expressions.
+ */
+function versionedIdField(config: {
+	/** Locator label shown on typeVersion 2, e.g. 'Tag' */
+	displayName: string;
+	/** Original label kept on typeVersion 1, e.g. 'Tag ID' */
+	v1DisplayName: string;
+	/** Shared parameter name, e.g. 'tagId' */
+	name: string;
+	/** REST path segment for URL-mode extraction, e.g. 'tag' */
+	entityPath: string;
+	/** Key in the listSearch registry (methods/loadOptions.ts) */
+	searchListMethod: string;
+	description: string;
+	show: { resource: string[]; operation: string[] };
+}): INodeProperties[] {
+	return [
+		{
+			displayName: config.v1DisplayName,
+			name: config.name,
+			type: 'string',
+			required: true,
+			default: '',
+			description: config.description,
+			displayOptions: { show: { ...config.show, '@version': [1] } },
+		},
+		{
+			displayName: config.displayName,
+			name: config.name,
+			type: 'resourceLocator',
+			default: { mode: 'list', value: '' },
+			required: true,
+			description: config.description,
+			displayOptions: { show: { ...config.show, '@version': [2] } },
+			modes: [
+				{
+					displayName: 'ID',
+					name: 'id',
+					type: 'string',
+					placeholder: 'e.g. 1234567890',
+					validation: [
+						{
+							type: 'regex',
+							properties: {
+								regex: '^[0-9]+$',
+								errorMessage: `${config.displayName} ID must be numeric`,
+							},
+						},
+					],
+				},
+				{
+					displayName: 'From List',
+					name: 'list',
+					type: 'list',
+					typeOptions: {
+						searchListMethod: config.searchListMethod,
+						searchable: true,
+					},
+				},
+				{
+					displayName: 'URL',
+					name: 'url',
+					type: 'string',
+					placeholder: `e.g. https://tenant.weclapp.com/webapp/api/v2/${config.entityPath}/id/1234567890`,
+					extractValue: {
+						type: 'regex',
+						regex: `/${config.entityPath}/id/([0-9]+)`,
+					},
+					validation: [
+						{
+							type: 'regex',
+							properties: {
+								regex: `/${config.entityPath}/id/[0-9]+`,
+								errorMessage: `URL must contain /${config.entityPath}/id/{id}`,
+							},
+						},
+					],
+				},
+			],
+		},
+	];
+}
 
 // ─── TAG ─────────────────────────────────────────────────────────────────────
 
@@ -75,6 +168,10 @@ export const tagFields: INodeProperties[] = [
 	// ── List ──────────────────────────────────────────────────────────────────
 	...listLimitFields('tag'),
 	{
+		...sortCollection,
+		displayOptions: { show: { resource: ['tag'], operation: ['list'] } },
+	},
+	{
 		...filtersCollection,
 		displayOptions: { show: { resource: ['tag'], operation: ['list'] } },
 	},
@@ -88,15 +185,15 @@ export const tagFields: INodeProperties[] = [
 	},
 
 	// ── Get / Delete / Update — ID ────────────────────────────────────────────
-	{
-		displayName: 'Tag ID',
+	...versionedIdField({
+		displayName: 'Tag',
+		v1DisplayName: 'Tag ID',
 		name: 'tagId',
-		type: 'string',
-		required: true,
-		default: '',
-		description: 'The ID of the tag',
-		displayOptions: { show: { resource: ['tag'], operation: ['get', 'delete', 'update'] } },
-	},
+		entityPath: 'tag',
+		searchListMethod: 'searchTags',
+		description: 'The tag to operate on',
+		show: { resource: ['tag'], operation: ['get', 'delete', 'update'] },
+	}),
 
 	// ── Create / Update — body fields ─────────────────────────────────────────
 	{
@@ -193,6 +290,10 @@ export const unitFields: INodeProperties[] = [
 	// ── List ──────────────────────────────────────────────────────────────────
 	...listLimitFields('unit'),
 	{
+		...sortCollection,
+		displayOptions: { show: { resource: ['unit'], operation: ['list'] } },
+	},
+	{
 		...filtersCollection,
 		displayOptions: { show: { resource: ['unit'], operation: ['list'] } },
 	},
@@ -206,15 +307,15 @@ export const unitFields: INodeProperties[] = [
 	},
 
 	// ── Get / Delete / Update — ID ────────────────────────────────────────────
-	{
-		displayName: 'Unit ID',
+	...versionedIdField({
+		displayName: 'Unit',
+		v1DisplayName: 'Unit ID',
 		name: 'unitId',
-		type: 'string',
-		required: true,
-		default: '',
-		description: 'The ID of the unit',
-		displayOptions: { show: { resource: ['unit'], operation: ['get', 'delete', 'update'] } },
-	},
+		entityPath: 'unit',
+		searchListMethod: 'searchUnits',
+		description: 'The unit to operate on',
+		show: { resource: ['unit'], operation: ['get', 'delete', 'update'] },
+	}),
 
 	// ── Create / Update — body fields ─────────────────────────────────────────
 	{
@@ -319,6 +420,10 @@ export const userFields: INodeProperties[] = [
 	// ── List ──────────────────────────────────────────────────────────────────
 	...listLimitFields('user'),
 	{
+		...sortCollection,
+		displayOptions: { show: { resource: ['user'], operation: ['list'] } },
+	},
+	{
 		...filtersCollection,
 		displayOptions: { show: { resource: ['user'], operation: ['list'] } },
 	},
@@ -334,15 +439,15 @@ export const userFields: INodeProperties[] = [
 	},
 
 	// ── Get / Update — ID ─────────────────────────────────────────────────────
-	{
-		displayName: 'User ID',
+	...versionedIdField({
+		displayName: 'User',
+		v1DisplayName: 'User ID',
 		name: 'userId',
-		type: 'string',
-		required: true,
-		default: '',
-		description: 'The ID of the user',
-		displayOptions: { show: { resource: ['user'], operation: ['get', 'update'] } },
-	},
+		entityPath: 'user',
+		searchListMethod: 'searchUsers',
+		description: 'The user to operate on',
+		show: { resource: ['user'], operation: ['get', 'update'] },
+	}),
 
 	// ── Create — required fields ───────────────────────────────────────────────
 	{
@@ -496,6 +601,12 @@ export const customAttributeDefinitionFields: INodeProperties[] = [
 	// ── List ──────────────────────────────────────────────────────────────────
 	...listLimitFields('customAttributeDefinition'),
 	{
+		...sortCollection,
+		displayOptions: {
+			show: { resource: ['customAttributeDefinition'], operation: ['list'] },
+		},
+	},
+	{
 		...filtersCollection,
 		displayOptions: {
 			show: { resource: ['customAttributeDefinition'], operation: ['list'] },
@@ -515,20 +626,18 @@ export const customAttributeDefinitionFields: INodeProperties[] = [
 	},
 
 	// ── Get / Delete / Update — ID ────────────────────────────────────────────
-	{
-		displayName: 'Custom Attribute Definition ID',
+	...versionedIdField({
+		displayName: 'Custom Attribute Definition',
+		v1DisplayName: 'Custom Attribute Definition ID',
 		name: 'customAttributeDefinitionId',
-		type: 'string',
-		required: true,
-		default: '',
-		description: 'The ID of the custom attribute definition',
-		displayOptions: {
-			show: {
-				resource: ['customAttributeDefinition'],
-				operation: ['get', 'delete', 'update'],
-			},
+		entityPath: 'customAttributeDefinition',
+		searchListMethod: 'searchCustomAttributeDefinitions',
+		description: 'The custom attribute definition to operate on',
+		show: {
+			resource: ['customAttributeDefinition'],
+			operation: ['get', 'delete', 'update'],
 		},
-	},
+	}),
 
 	// ── Create — required fields ───────────────────────────────────────────────
 	{

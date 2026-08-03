@@ -2,7 +2,7 @@ import type { INodeProperties } from 'n8n-workflow';
 
 import {
 	additionalFields,
-	filtersCollection,
+	filtersCollection, sortCollection,
 	listLimitFields,
 	listPaginationRouting,
 	simplifyField,
@@ -529,6 +529,10 @@ export const purchaseOrderFields: INodeProperties[] = [
 	},
 
 	// ── List: General filters collection ────────────────────────────────────
+	{
+		...sortCollection,
+		displayOptions: { show: { resource: ['purchaseOrder'], operation: ['list'] } },
+	},
 	{
 		...filtersCollection,
 		displayOptions: { show: { resource: ['purchaseOrder'], operation: ['list'] } },

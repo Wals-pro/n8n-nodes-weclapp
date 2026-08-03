@@ -3,14 +3,20 @@
   "nodes": [
     {
       "parameters": {
-        "entityType": "SALES_ORDER",
-        "events": ["CREATE"]
+        "entityName": "salesOrder",
+        "events": [
+          "created",
+          "updated"
+        ]
       },
       "id": "d4e5f6a7-0004-0004-0004-000000000001",
       "name": "weclapp Trigger",
       "type": "@wals-pro/n8n-nodes-weclapp.weclappTrigger",
       "typeVersion": 1,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "webhookId": "weclapp-trigger-example",
       "credentials": {
         "weclappApi": {
@@ -47,7 +53,10 @@
       "name": "Format Output",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3,
-      "position": [460, 300]
+      "position": [
+        460,
+        300
+      ]
     }
   ],
   "connections": {

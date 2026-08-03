@@ -1,6 +1,6 @@
 import type { INodeProperties } from 'n8n-workflow';
 
-import { filtersCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
+import { filtersCollection, sortCollection, listLimitFields, listPaginationRouting, simplifyField } from '../SharedFields';
 import { mergeAdditionalProperties, simplifyPostReceive } from '../GenericFunctions';
 
 // ---------------------------------------------------------------------------
@@ -202,6 +202,10 @@ export const ticketFields: INodeProperties[] = [
 	...listLimitFields('ticket'),
 
 	// ── List: Filters ──
+	{
+		...sortCollection,
+		displayOptions: { show: { resource: ['ticket'], operation: ['list'] } },
+	},
 	{
 		...filtersCollection,
 		displayOptions: { show: { resource: ['ticket'], operation: ['list'] } },
@@ -591,6 +595,12 @@ export const commentFields: INodeProperties[] = [
 
 	// ── List: Limit ──
 	...listLimitFields('comment'),
+
+	// ── List: Sort ──
+	{
+		...sortCollection,
+		displayOptions: { show: { resource: ['comment'], operation: ['list'] } },
+	},
 
 	// ── List: Simplify ──
 	{

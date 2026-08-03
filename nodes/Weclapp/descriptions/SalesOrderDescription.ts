@@ -3,7 +3,7 @@ import type { INodeProperties } from 'n8n-workflow';
 import {
 	additionalFields,
 	customAttributesField,
-	filtersCollection,
+	filtersCollection, sortCollection,
 	listLimitFields,
 	listPaginationRouting,
 	simplifyField,
@@ -596,6 +596,10 @@ export const salesOrderFields: INodeProperties[] = [
 
 	// ── List: pagination + filters ────────────────────────────────────────────
 	...listLimitFields('salesOrder'),
+	{
+		...sortCollection,
+		displayOptions: { show: { resource: ['salesOrder'], operation: ['list'] } },
+	},
 	{
 		...filtersCollection,
 		description:

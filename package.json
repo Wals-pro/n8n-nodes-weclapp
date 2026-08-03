@@ -1,6 +1,6 @@
 {
 	"name": "@wals-pro/n8n-nodes-weclapp",
-	"version": "0.4.0",
+	"version": "1.0.0",
 	"publishConfig": {
 		"access": "public"
 	},
@@ -14,7 +14,12 @@
 	"keywords": [
 		"n8n-community-node-package",
 		"weclapp",
-		"erp"
+		"erp",
+		"crm",
+		"invoicing",
+		"inventory",
+		"sales-order",
+		"warehouse"
 	],
 	"author": {
 		"name": "Markus Wals",
