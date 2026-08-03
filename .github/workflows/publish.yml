@@ -103,14 +103,40 @@ jobs:
       - name: Verify against the n8n community scan gate
         # This is the same gate n8n runs during node verification: it resolves
         # the package from npm, checks provenance, re-fetches the attested
-        # GitHub source and lints it with allowInlineConfig disabled. It can
-        # only run post-publish, which is why it lives here and not in ci.yml.
+        # GitHub source from codeload and lints it with allowInlineConfig
+        # disabled. It can only run post-publish, which is why it lives here
+        # and not in ci.yml.
+        #
+        # Two things the scanner does NOT do for us:
+        #   - it exits 0 even when the verdict is a failure, so the verdict
+        #     line has to be asserted explicitly;
+        #   - npm and codeload both need a moment to serve a just-published
+        #     version and a just-pushed commit, so the whole scan is retried
+        #     rather than just the npm lookup.
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           PKG="@wals-pro/n8n-nodes-weclapp@${VERSION}"
-          for _ in 1 2 3 4 5 6; do
-            npm view "$PKG" version >/dev/null 2>&1 && break
-            echo "Waiting for npm to serve ${PKG}…"
+
+          for attempt in 1 2 3 4 5 6; do
+            echo "::group::Scan attempt ${attempt} — ${PKG}"
+            npx --yes @n8n/scan-community-package@latest "$PKG" 2>&1 | tee scan.log
+            echo "::endgroup::"
+
+            if grep -q 'has passed all security checks' scan.log; then
+              echo "✅ ${PKG} passes the n8n community scan gate"
+              exit 0
+            fi
+
+            # A source or registry fetch that has not propagated yet is the only
+            # retryable outcome; an actual finding is final.
+            if ! grep -qE 'Could not fetch|Analysis failed|404' scan.log; then
+              echo "::error::${PKG} failed the n8n community scan gate"
+              exit 1
+            fi
+
+            echo "Registry/source not propagated yet — retrying in 20s"
             sleep 20
           done
-          npx --yes @n8n/scan-community-package@latest "$PKG"
+
+          echo "::error::Could not obtain a verdict for ${PKG} from the n8n community scan gate"
+          exit 1
