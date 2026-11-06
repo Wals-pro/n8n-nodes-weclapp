@@ -8,6 +8,7 @@ import { executeApplyPayment } from './actions/applyPayment';
 import { executeUpdatePrices } from './actions/articlePriceSync';
 import { executeCustomApiCall } from './descriptions/CustomApiDescription';
 import { executeDocumentUpload, executeDocumentUploadNewVersion } from './actions/documentUpload';
+import { executePerItem } from './GenericFunctions';
 
 export class Weclapp implements INodeType {
 	description: INodeTypeDescription = {
@@ -193,16 +194,15 @@ export class Weclapp implements INodeType {
 	 * resource+operation matches a key here. All other operations continue to use
 	 * the declarative routing defined in the operation's `routing` property.
 	 *
-	 * Handlers must process ALL items themselves (iterate `this.getInputData()`)
-	 * and return `INodeExecutionData[][]` (one output branch).
+	 * Handlers must process ALL items themselves and return `INodeExecutionData[][]`
+	 * (one output branch). Every handler runs through executePerItem so a failing
+	 * item honours "On Error" — n8n would otherwise pass the raw input items to the
+	 * success output (see executePerItem).
 	 */
 	customOperations = {
 		article: {
 			updatePrices: async function (this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-				const items = this.getInputData();
-				const results: INodeExecutionData[] = [];
-
-				for (let i = 0; i < items.length; i++) {
+				return await executePerItem.call(this, async (i) => {
 					// resourceLocator — extractValue: true resolves to the raw ID string.
 					const articleId = this.getNodeParameter('articleId', i, '', { extractValue: true }) as string;
 					const grossPrice = this.getNodeParameter('grossPrice', i) as number;
@@ -220,64 +220,36 @@ export class Weclapp implements INodeType {
 						validFrom: options.validFrom && options.validFrom > 0 ? options.validFrom : undefined,
 					});
 
-					results.push({ json: result as unknown as IDataObject, pairedItem: { item: i } });
-				}
-
-				return [results];
+					return { json: result as unknown as IDataObject, pairedItem: { item: i } };
+				});
 			},
 		},
 
 		purchaseInvoice: {
 			applyPayment: async function (this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-				const items = this.getInputData();
-				const results: INodeExecutionData[] = [];
-
-				for (let i = 0; i < items.length; i++) {
+				return await executePerItem.call(this, async (i) => {
 					const result = await executeApplyPayment.call(this, i);
-					results.push({ json: result as unknown as IDataObject, pairedItem: { item: i } });
-				}
-
-				return [results];
+					return { json: result as unknown as IDataObject, pairedItem: { item: i } };
+				});
 			},
 		},
 
 		customApiCall: {
 			call: async function (this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-				const items = this.getInputData();
-				const results: INodeExecutionData[] = [];
-
-				for (let i = 0; i < items.length; i++) {
-					const result = await executeCustomApiCall.call(this, i);
-					results.push(result);
-				}
-
-				return [results];
+				return await executePerItem.call(this, async (i) => await executeCustomApiCall.call(this, i));
 			},
 		},
 
 		document: {
 			upload: async function (this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-				const items = this.getInputData();
-				const results: INodeExecutionData[] = [];
-
-				for (let i = 0; i < items.length; i++) {
-					const result = await executeDocumentUpload.call(this, i);
-					results.push(result);
-				}
-
-				return [results];
+				return await executePerItem.call(this, async (i) => await executeDocumentUpload.call(this, i));
 			},
 
 			uploadNewVersion: async function (this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
-				const items = this.getInputData();
-				const results: INodeExecutionData[] = [];
-
-				for (let i = 0; i < items.length; i++) {
-					const result = await executeDocumentUploadNewVersion.call(this, i);
-					results.push(result);
-				}
-
-				return [results];
+				return await executePerItem.call(
+					this,
+					async (i) => await executeDocumentUploadNewVersion.call(this, i),
+				);
 			},
 		},
 	};

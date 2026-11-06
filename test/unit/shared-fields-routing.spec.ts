@@ -10,6 +10,9 @@
 
 import { describe, it, expect } from 'vitest';
 import type {
+	DeclarativeRestApiSettings,
+	IDataObject,
+	IExecutePaginationFunctions,
 	IExecuteSingleFunctions,
 	IHttpRequestOptions,
 	IN8nHttpFullResponse,
@@ -25,7 +28,8 @@ import {
 	limitField,
 	returnAllField,
 	listPaginationRouting,
-	paginationConfig,
+	weclappPagination,
+	WECLAPP_PAGE_SIZE,
 } from '../../nodes/Weclapp/SharedFields';
 
 import {
@@ -535,8 +539,8 @@ describe('limitField', () => {
 // ---------------------------------------------------------------------------
 
 describe('listPaginationRouting', () => {
-	it('operations.pagination is paginationConfig', () => {
-		expect(listPaginationRouting.operations?.pagination).toBe(paginationConfig);
+	it('operations.pagination is weclappPagination', () => {
+		expect(listPaginationRouting.operations?.pagination).toBe(weclappPagination);
 	});
 
 	it('paginate runs only when Return All is on', () => {
@@ -545,31 +549,87 @@ describe('listPaginationRouting', () => {
 });
 
 // ---------------------------------------------------------------------------
-// paginationConfig shape
+// weclappPagination — page numbers from 1 (regression: n8n offset sent page=0)
 // ---------------------------------------------------------------------------
 
-describe('paginationConfig', () => {
-	it('type is offset', () => {
-		expect(paginationConfig.type).toBe('offset');
+/**
+ * Fake weclapp list endpoint behind makeRoutingRequest: enforces page >= 1
+ * like the real API (400 "page must be at least 1") and returns the rows of
+ * the requested page, already unwrapped as the op's postReceive would.
+ */
+function paginationContext(total: number) {
+	const calls: IDataObject[] = [];
+	const ctx = {
+		makeRoutingRequest: async (opts: DeclarativeRestApiSettings.ResultOptions) => {
+			const qs = { ...(opts.options.qs as IDataObject) };
+			calls.push(qs);
+			const page = Number(qs.page);
+			const pageSize = Number(qs.pageSize);
+			if (!(page >= 1)) throw new Error('400 validation failed: page must be at least 1');
+			const start = (page - 1) * pageSize;
+			const count = Math.max(0, Math.min(pageSize, total - start));
+			return Array.from({ length: count }, (_, i) => ({ json: { id: String(start + i + 1) } }));
+		},
+	} as unknown as IExecutePaginationFunctions;
+	return { ctx, calls };
+}
+
+function listRequest(qs: IDataObject): DeclarativeRestApiSettings.ResultOptions {
+	return {
+		options: { method: 'GET', url: '/bankTransaction', qs },
+		paginate: true,
+		maxResults: 0,
+	} as unknown as DeclarativeRestApiSettings.ResultOptions;
+}
+
+describe('weclappPagination', () => {
+	it('walks page=1,2,3 with pageSize 1000 and returns every record', async () => {
+		const { ctx, calls } = paginationContext(2500);
+		const items = await weclappPagination.call(ctx, listRequest({ pageSize: 1000 }));
+
+		expect(calls.map((c) => c.page)).toEqual([1, 2, 3]);
+		expect(calls.every((c) => c.pageSize === WECLAPP_PAGE_SIZE)).toBe(true);
+		expect(items).toHaveLength(2500);
+		expect(items[0].json.id).toBe('1');
+		expect(items[2499].json.id).toBe('2500');
 	});
 
-	it('limitParameter is pageSize', () => {
-		expect(paginationConfig.properties.limitParameter).toBe('pageSize');
+	it('never sends page=0', async () => {
+		const { ctx, calls } = paginationContext(10);
+		await weclappPagination.call(ctx, listRequest({}));
+		expect(calls.map((c) => c.page)).toEqual([1]);
 	});
 
-	it('offsetParameter is page', () => {
-		expect(paginationConfig.properties.offsetParameter).toBe('page');
+	it('requests one extra empty page when the total is an exact multiple of 1000', async () => {
+		const { ctx, calls } = paginationContext(2000);
+		const items = await weclappPagination.call(ctx, listRequest({}));
+		expect(calls.map((c) => c.page)).toEqual([1, 2, 3]);
+		expect(items).toHaveLength(2000);
 	});
 
-	it('pageSize is 1000', () => {
-		expect(paginationConfig.properties.pageSize).toBe(1000);
+	it('returns an empty list for an empty result set', async () => {
+		const { ctx } = paginationContext(0);
+		expect(await weclappPagination.call(ctx, listRequest({}))).toEqual([]);
 	});
 
-	it('rootProperty is result', () => {
-		expect(paginationConfig.properties.rootProperty).toBe('result');
+	it('keeps filters, sort and projection on every page', async () => {
+		const { ctx, calls } = paginationContext(1500);
+		await weclappPagination.call(
+			ctx,
+			listRequest({ 'cleared-eq': 'false', sort: '-effectiveDate', properties: 'id,amount', pageSize: 1000 }),
+		);
+		expect(calls).toHaveLength(2);
+		for (const qs of calls) {
+			expect(qs['cleared-eq']).toBe('false');
+			expect(qs.sort).toBe('-effectiveDate');
+			expect(qs.properties).toBe('id,amount');
+		}
 	});
 
-	it('type is query', () => {
-		expect(paginationConfig.properties.type).toBe('query');
+	it('does not mutate the original request query', async () => {
+		const { ctx } = paginationContext(1500);
+		const request = listRequest({ pageSize: 1000 });
+		await weclappPagination.call(ctx, request);
+		expect(request.options.qs).toEqual({ pageSize: 1000 });
 	});
 });

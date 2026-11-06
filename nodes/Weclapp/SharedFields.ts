@@ -3,7 +3,9 @@ import type {
 	IHttpRequestOptions,
 	INodeProperties,
 	INodePropertyRouting,
-	IN8nRequestOperationPaginationOffset,
+	DeclarativeRestApiSettings,
+	IExecutePaginationFunctions,
+	INodeExecutionData,
 	ResourceMapperValue,
 } from 'n8n-workflow';
 
@@ -17,28 +19,46 @@ export type WeclappFilterEntry = { field: string; operator: string; value?: stri
 // Pagination config
 // ---------------------------------------------------------------------------
 
+/** weclapp's per-page ceiling; Return All always fetches pages of this size. */
+export const WECLAPP_PAGE_SIZE = 1000;
+
 /**
- * Native n8n offset-pagination config for weclapp list operations.
+ * Page-number pagination for weclapp list operations (Return All).
  *
- * Resource descriptors can spread this into their list op's `routing.operations`
- * to get automatic multi-page fetching when returnAll = true.
+ * weclapp counts pages from 1 (`page=1, 2, 3 …`) and rejects `page=0` with
+ * 400 "page must be at least 1". n8n's built-in `offset` pagination cannot
+ * express that: it starts at 0 and adds `pageSize` per step (`page=0, 1000,
+ * 2000 …`), and it re-applies its rootProperty on rows the op's postReceive
+ * already unwrapped. Hence a function, which n8n calls instead of its own loop.
  *
- * NOTE: Resource descriptors are NOT wired to this yet — that is a follow-up
- * task (see #29 partial). The constant is exported so follow-up workers can
- * consume it without touching SharedFields again.
- *
- * Shape verified against IN8nRequestOperationPaginationOffset from n8n-workflow.
+ * Each page goes through `makeRoutingRequest`, so the op's postReceive
+ * (rootProperty `result`, additionalProperties merge, Simplify) runs per page
+ * and yields one item per record. A page shorter than WECLAPP_PAGE_SIZE is the
+ * last one. All other query params (filters, sort, projection) are kept.
  */
-export const paginationConfig: IN8nRequestOperationPaginationOffset = {
-	type: 'offset' as const,
-	properties: {
-		limitParameter: 'pageSize',
-		offsetParameter: 'page',
-		pageSize: 1000,
-		rootProperty: 'result',
-		type: 'query' as const,
-	},
-};
+export async function weclappPagination(
+	this: IExecutePaginationFunctions,
+	requestData: DeclarativeRestApiSettings.ResultOptions,
+): Promise<INodeExecutionData[]> {
+	const results: INodeExecutionData[] = [];
+	const baseQs = (requestData.options.qs ?? {}) as IDataObject;
+	let page = 1;
+	let pageItems: INodeExecutionData[];
+
+	do {
+		pageItems = await this.makeRoutingRequest({
+			...requestData,
+			options: {
+				...requestData.options,
+				qs: { ...baseQs, page, pageSize: WECLAPP_PAGE_SIZE },
+			},
+		});
+		results.push(...pageItems);
+		page++;
+	} while (pageItems.length === WECLAPP_PAGE_SIZE);
+
+	return results;
+}
 
 // ---------------------------------------------------------------------------
 // preSend: filters
@@ -252,7 +272,7 @@ export const returnAllField: INodeProperties = {
 		send: {
 			type: 'query',
 			property: 'pageSize',
-			value: '={{ $value ? 1000 : $parameter.limit }}',
+			value: `={{ $value ? ${WECLAPP_PAGE_SIZE} : $parameter.limit }}`,
 		},
 	},
 };
@@ -309,7 +329,7 @@ export const listLimitFields = (resource: string, operation = 'list'): INodeProp
  */
 export const listPaginationRouting: Pick<INodePropertyRouting, 'operations' | 'send'> = {
 	operations: {
-		pagination: paginationConfig,
+		pagination: weclappPagination,
 	},
 	send: {
 		paginate: '={{ $parameter.returnAll }}',
