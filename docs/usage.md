@@ -109,8 +109,8 @@ Field: createdDate   Operator: -ge   Value: 1700000000000
 ## Pagination
 
 - **Return All** off (the default): one request fetches up to **Limit** records. Limit defaults to `50` and accepts `1`–`1000` (1000 is the weclapp per-page maximum).
-- **Return All** on: the node paginates automatically until weclapp returns a short page (up to 100 pages × 1000 records = 100,000 records maximum). The **Limit** field is hidden.
-- Page size is 1000 per page while returning all (the weclapp maximum).
+- **Return All** on: the node requests `page=1, 2, 3 …` with `pageSize=1000` (the weclapp maximum) until weclapp returns a short page, so it returns every matching record. Filters, sort and projection apply to every page. The **Limit** field is hidden.
+- On large entities, narrow the result with filters first — every 1000 records cost one API request.
 
 ---
 
@@ -149,7 +149,7 @@ After a **Create** operation, verify success before any downstream step that wri
 {{ $json.id != null && $json.error == null }}
 ```
 
-For marker workflows, also prefer the node's **Stop On Error** setting (node **Settings → Stop On Error**): if the create fails, the item stops instead of falling through and marking a record as synced that was never created.
+For marker workflows, also prefer the node's **Stop On Error** setting (node **Settings → Stop On Error**): if the create fails, the item stops instead of falling through and marking a record as synced that was never created. Alternatively use **On Error → Continue (using error output)**: every failed item (on all operations, including Custom API Call, Apply Payment, Update Prices and Document Upload) goes to the error output with `json.error` and `json.details.httpCode`, while successful items stay on the success output.
 
 ---
 

@@ -5,7 +5,7 @@ import {
 	returnAllField,
 	listLimitFields,
 	listPaginationRouting,
-	paginationConfig,
+	weclappPagination,
 	filtersCollection,
 	additionalFields,
 	ignoreMissingPropertiesField,
@@ -100,8 +100,8 @@ describe('listLimitFields', () => {
 });
 
 describe('listPaginationRouting', () => {
-	it('operations.pagination is paginationConfig', () => {
-		expect(listPaginationRouting.operations?.pagination).toBe(paginationConfig);
+	it('operations.pagination is weclappPagination', () => {
+		expect(listPaginationRouting.operations?.pagination).toBe(weclappPagination);
 	});
 
 	it('paginate gate is keyed on $parameter.returnAll', () => {

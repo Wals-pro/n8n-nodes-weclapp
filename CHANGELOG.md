@@ -2,6 +2,35 @@
 
 All notable changes to `@wals-pro/n8n-nodes-weclapp` are documented here.
 
+## [1.0.1] - 2026-11-06
+
+Two bugs found in a live workflow run (n8n 2.43.4, weclapp Testhandel) and
+confirmed there. Both are fixed without any parameter change; existing
+workflows pick up the fix on upgrade.
+
+### Fixed
+
+- **Return All failed on every Get Many with HTTP 400 "page must be at least
+  1".** The list operations used n8n's built-in offset pagination, which
+  counts from 0 and adds the page size per step (`page=0, 1000, 2000 …`);
+  weclapp counts pages from 1. Return All now requests `page=1, 2, 3 …` with
+  `pageSize=1000` until a page comes back shorter, keeping filters, sort and
+  projection on every page. Affects all 22 list operations; Limit (Return All
+  off) was not affected.
+- **A failing Custom API Call, Apply Payment, Update Prices, Document Upload
+  or Upload New Version went to the success output.** With "On Error" set to
+  "Continue" or "Continue (using error output)", the error stopped the item
+  loop and n8n passed the unchanged input items on as if they had succeeded;
+  in a mixed batch the responses of the items that did succeed were lost.
+  Each item is now handled on its own: a failing item becomes an error item
+  (`json.error` with the message, `json.details.httpCode`, `pairedItem`) and
+  goes to the error output, successful items keep their response. With "On
+  Error" set to "Stop Workflow" the run still stops at the first error.
+- Error messages from these operations now carry weclapp's own `detail` and
+  the HTTP status. Inside n8n the weclapp problem body arrives on the error
+  n8n already built (`context.data`), which the parser did not read, so only
+  n8n's generic text reached the workflow.
+
 ## [1.0.0] - 2026-08-03
 
 Stability commitment release, prepared for n8n verified-community-node
