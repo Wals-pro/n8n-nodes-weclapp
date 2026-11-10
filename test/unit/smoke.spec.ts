@@ -40,7 +40,7 @@ describe('SharedFields', () => {
 	});
 
 	it('listPaginationRouting carries pagination operations and a paginate gate', () => {
-		expect(listPaginationRouting.operations?.pagination).toBeTypeOf('object');
+		expect(listPaginationRouting.operations?.pagination).toBeTypeOf('function');
 		expect(listPaginationRouting.send?.paginate).toBe('={{ $parameter.returnAll }}');
 	});
 

@@ -338,9 +338,20 @@ export function parseApiProblem(context: WeclappFunctions, err: unknown): never 
 				body = r.body as IDataObject;
 			}
 		}
+
+		// Inside a running n8n, httpRequestWithAuthentication already throws a
+		// NodeApiError: the weclapp problem body sits in `context.data` and the
+		// HTTP status in `httpCode`. Without this branch both were lost.
+		const contextData = (e.context as Record<string, unknown> | undefined)?.data;
+		if (Object.keys(body).length === 0 && contextData && typeof contextData === 'object') {
+			body = contextData as IDataObject;
+		}
 	}
 
-	const status = (body.status as number | string | undefined) ?? '';
+	const rawHttpCode = (err as Record<string, unknown> | undefined)?.httpCode;
+	const status =
+		(body.status as number | string | undefined) ??
+		(typeof rawHttpCode === 'string' || typeof rawHttpCode === 'number' ? rawHttpCode : '');
 	const title = (body.title as string | undefined) ?? '';
 	const detail = (body.detail as string | undefined) ?? '';
 
@@ -361,12 +372,16 @@ export function parseApiProblem(context: WeclappFunctions, err: unknown): never 
 
 	// Build the human-readable message.
 	const detailPart = validationDetails.length > 0 ? validationDetails.join('; ') : detail;
+	const rawErr = err as Record<string, unknown> | undefined;
 	const parts: string[] = [];
 	if (status) parts.push(String(status));
 	if (title) parts.push(title);
-	if (detailPart) parts.push(detailPart);
+	if (detailPart && detailPart !== title) parts.push(detailPart);
+	// Status alone says little — keep the original error text next to it.
+	if (parts.length === 1 && status && typeof rawErr?.message === 'string' && rawErr.message) {
+		parts.push(rawErr.message);
+	}
 
-	const rawErr = err as Record<string, unknown> | undefined;
 	const baseMessage =
 		parts.length > 0
 			? parts.join(': ')
@@ -558,4 +573,67 @@ export async function handleBinaryDownload(
 			data: binaryData,
 		},
 	};
+}
+
+// ---------------------------------------------------------------------------
+// Per-item execution for customOperations
+// ---------------------------------------------------------------------------
+
+/**
+ * Run a customOperation handler once per input item, honouring the node's
+ * "On Error" setting.
+ *
+ * n8n does not do this for programmatic handlers: when one throws while
+ * "Continue" or "Continue (using error output)" is set, n8n passes the
+ * untouched input items to the success output. A failed write then looks
+ * like a success. So every handler catches per item here:
+ *
+ *   - continueOnFail() off → rethrow (the run stops, as before), with the
+ *     failing itemIndex attached.
+ *   - continueOnFail() on  → emit one error item for the failing input item
+ *     and keep going. The item is `json: { error, details }` — exactly the
+ *     shape n8n's error-output split recognises (only `error`, `message`,
+ *     `details` keys), so it goes to the error output, merged with the input
+ *     item's fields. Deliberately no item-level `error` object: n8n would then
+ *     overwrite `json` with `{ error: message }` and drop `details`.
+ */
+export async function executePerItem(
+	this: IExecuteFunctions,
+	handler: (itemIndex: number) => Promise<INodeExecutionData | INodeExecutionData[]>,
+): Promise<INodeExecutionData[][]> {
+	const items = this.getInputData();
+	const results: INodeExecutionData[] = [];
+
+	for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+		try {
+			const output = await handler(itemIndex);
+			for (const item of Array.isArray(output) ? output : [output]) {
+				results.push({ ...item, pairedItem: item.pairedItem ?? { item: itemIndex } });
+			}
+		} catch (error) {
+			const nodeError =
+				error instanceof NodeApiError || error instanceof NodeOperationError
+					? error
+					: new NodeOperationError(this.getNode(), error as Error, { itemIndex });
+			nodeError.context = { ...nodeError.context, itemIndex };
+
+			if (!this.continueOnFail()) {
+				throw nodeError;
+			}
+
+			const httpCode = nodeError instanceof NodeApiError ? nodeError.httpCode : null;
+			results.push({
+				json: {
+					error: nodeError.message,
+					details: {
+						...(httpCode ? { httpCode } : {}),
+						...(nodeError.description ? { description: nodeError.description } : {}),
+					},
+				},
+				pairedItem: { item: itemIndex },
+			});
+		}
+	}
+
+	return [results];
 }
