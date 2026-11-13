@@ -2,7 +2,22 @@
 
 All notable changes to `@wals-pro/n8n-nodes-weclapp` are documented here.
 
-## [1.0.1] - 2026-11-06
+## [1.0.2] - 2026-11-13
+
+First published release with the 1.0.1 fixes. The `1.0.1` tag exists, but its
+publish run failed before reaching npm, so 1.0.1 was never published; 1.0.2
+contains all of its changes below.
+
+### Fixed
+
+- **Publish workflow pinned to Node 24.** `publish.yml` used `lts/*`, which
+  now resolves to Node 26; there `npm ci` failed to compile `isolated-vm`
+  (dev dependency via `n8n-workflow`) and the release stopped before
+  publishing. The workflow now uses Node 24, the version the last successful
+  release ran on; its npm 11 supports OIDC trusted publishing. No change to
+  the node code.
+
+## [1.0.1] - 2026-11-06 (not published)
 
 Two bugs found in a live workflow run (n8n 2.43.4, weclapp Testhandel) and
 confirmed there. Both are fixed without any parameter change; existing

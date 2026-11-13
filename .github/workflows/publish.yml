@@ -80,7 +80,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
+          # Pinned major. 'lts/*' moved to Node 26, where isolated-vm (dev
+          # dependency via n8n-workflow) fails to compile and `npm ci` aborts
+          # before publishing (1.0.1 release run, 2026-11-13). Node 24 is what
+          # 'lts/*' resolved to for the last good release (1.0.0) and bundles
+          # npm 11, which OIDC trusted publishing needs (npm >= 11.5.1); Node
+          # 22's npm 10 cannot publish via OIDC.
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
