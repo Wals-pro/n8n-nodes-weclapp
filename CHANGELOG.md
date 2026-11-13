@@ -10,10 +10,11 @@ contains all of its changes below.
 
 ### Fixed
 
-- **Publish workflow pinned to Node 22.** `publish.yml` used `lts/*`, which
+- **Publish workflow pinned to Node 24.** `publish.yml` used `lts/*`, which
   now resolves to Node 26; there `npm ci` failed to compile `isolated-vm`
   (dev dependency via `n8n-workflow`) and the release stopped before
-  publishing. The workflow now uses Node 22, the same as `ci.yml`. No change to
+  publishing. The workflow now uses Node 24, the version the last successful
+  release ran on; its npm 11 supports OIDC trusted publishing. No change to
   the node code.
 
 ## [1.0.1] - 2026-11-06 (not published)
