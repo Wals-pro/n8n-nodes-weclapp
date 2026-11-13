@@ -80,7 +80,10 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 'lts/*'
+          # Pinned to the CI version (ci.yml). 'lts/*' moved to Node 26, where
+          # isolated-vm (dev dependency via n8n-workflow) fails to compile and
+          # `npm ci` aborts before publishing (1.0.1 release run, 2026-11-13).
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
